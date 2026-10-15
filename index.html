@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Rally Chart</title>
+<meta name="description" content="Volleyball shot tracker: tap where a hit starts and lands, tag it, and get live percentages and printable game charts.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2C97A0">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rally Chart">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0F141B;
+    --panel: #1A222C;
+    --panel-2: #212C38;
+    --line: #303C4A;
+    --text: #EDEFF3;
+    --muted: #8A96A6;
+    --gold: #E3A93F;
+    --teal: #2C97A0;
+    --court: #C08A4E;
+    --court-dark: #A8763F;
+    --white-line: #F5EFE3;
+    --kill: #E0473F;
+    --killAttempt: #E8897C;
+    --tipAttempt: #E056A0;
+    --dig: #43B872;
+    --digError: #2F6B45;
+    --receive: #3B82F6;
+    --receiveError: #1E4E8C;
+    --serve: #A67C52;
+    --serveError: #6B4F30;
+    --ace: #B77FE0;
+    --block: #E3A93F;
+    --blockError: #8C5A2B;
+    --hitError: #6E1423;
+    --error: #9B3948;
+    --none: #8A96A6;
+    --radius: 10px;
+    font-family: 'Inter', sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg: #F3F1EC;
+      --panel: #FFFFFF;
+      --panel-2: #FBF9F5;
+      --line: #DDD6C7;
+      --text: #211B12;
+      --muted: #6B6252;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #0F141B; --panel:#1A222C; --panel-2:#212C38; --line:#303C4A; --text:#EDEFF3; --muted:#8A96A6;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);}
+  body{min-height:100vh;-webkit-font-smoothing:antialiased;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+
+  h1,h2,h3,.display{font-family:'Barlow Condensed',sans-serif;letter-spacing:0.01em;}
+
+  .app{
+    display:grid;
+    grid-template-columns: 1fr 290px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "header header"
+      "court sidebar";
+    min-height:100vh;
+    gap:0;
+  }
+  @media (max-width: 880px){
+    .app{grid-template-columns:minmax(0,1fr); grid-template-areas:"header" "court" "sidebar";}
+  }
+
+  header{
+    grid-area: header;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .brand{display:flex; align-items:baseline; gap:10px;}
+  .brand h1{font-size:26px; font-weight:700; margin:0; color:var(--text);}
+  .brand span{font-size:13px; color:var(--muted); font-family:'Inter',sans-serif;}
+
+  .game-controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+
+  select, button, input[type=text]{
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:var(--text);
+    padding:8px 12px;
+  }
+  select{max-width:180px;}
+  button{cursor:pointer; font-weight:600; transition: transform .06s ease, background .15s ease;}
+  button:hover{background:var(--line);}
+  button:active{transform: scale(0.97);}
+  button.primary{background:var(--teal); border-color:var(--teal); color:#08181A;}
+  button.primary:hover{background:#37abb5;}
+  button.gold{background:var(--gold); border-color:var(--gold); color:#2A1D02;}
+  button.gold:hover{background:#eeb956;}
+  button.ghost{background:transparent;}
+  button.danger{color:var(--error); border-color:var(--error);}
+  button.danger:hover{background: rgba(224,97,90,0.12);}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+  .zone-toggle.active, .zone-formation.active{
+    background:var(--teal); border-color:var(--teal); color:#08181A;
+  }
+
+  .court-wrap{
+    grid-area: court;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 22px 16px 10px;
+    gap:12px;
+    position:relative;
+  }
+
+  .instruction{
+    font-size:14.5px;
+    color:var(--text);
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:8px 16px;
+    border-radius:20px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .instruction .dot{width:9px;height:9px;border-radius:50%; background:var(--teal);}
+  .instruction.step2 .dot{background:var(--gold);}
+
+  .court-frame{
+    background: linear-gradient(180deg,var(--court) 0%, var(--court-dark) 100%);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    touch-action: none;
+    max-width: 100%;
+  }
+  svg#court{
+    display:block;
+    width: min(calc(100vw - 290px - 220px), 480px, calc((100vh - 290px) * 0.4737));
+    width: min(calc(100vw - 290px - 220px), 480px, calc((100dvh - 290px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 0.4737));
+    height: auto;
+    cursor: crosshair;
+    touch-action: none;
+  }
+  @media (max-width:880px){
+    svg#court{
+      width: min(calc(100vw - 112px), 500px, calc((100vh - 262px) * 0.4737));
+      width: min(calc(100vw - 112px), 500px, calc((100dvh - 262px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 0.4737));
+    }
+    .court-frame{ padding:10px; }
+    .court-wrap{ padding:10px 8px 8px; gap:8px; }
+    .court-row{ gap:6px; }
+    .rail-spacer{ display:none; }
+    .game-controls select{ max-width:140px; }
+    header{ padding:8px 12px; gap:6px; }
+    .brand h1{ font-size:21px; }
+    .brand span{ display:none; }
+    .game-controls{ gap:5px; }
+    .game-controls button, .game-controls select{ padding:7px 9px; font-size:12.5px; }
+    .instruction{ font-size:13.5px; padding:6px 12px; }
+  }
+
+  .sidebar{
+    grid-area: sidebar;
+    background: var(--panel);
+    border-left:1px solid var(--line);
+    padding: 18px;
+    display:flex;
+    flex-direction:column;
+    gap: 18px;
+    max-height: calc(100vh - 0px);
+    overflow-y:auto;
+  }
+  @media (max-width:880px){
+    .sidebar{border-left:none; border-top:1px solid var(--line);}
+  }
+
+  .section-title{
+    font-size:13px; text-transform:none; color:var(--muted); margin:0 0 8px 0; font-weight:600; font-family:'Inter',sans-serif;
+  }
+
+  .legend{display:flex; flex-direction:column; gap:6px;}
+  .legend-row{display:flex; align-items:center; justify-content:space-between; font-size:13.5px;}
+  .legend-left{display:flex; align-items:center; gap:8px;}
+  .swatch{width:12px;height:12px;border-radius:3px;}
+  .legend-count{color:var(--muted); font-variant-numeric: tabular-nums;}
+
+  .pct-table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  .pct-table th{ color:var(--muted); font-weight:600; text-align:right; padding:4px 4px; font-size:12px; }
+  .pct-table th:first-child{ text-align:left; }
+  .pct-table td{ padding:5px 4px; text-align:right; font-variant-numeric: tabular-nums; border-top:1px solid var(--line); }
+  .pct-table td:first-child{ text-align:left; color:var(--muted); }
+
+  .stat-total{
+    display:flex; align-items:baseline; gap:8px; margin-bottom:4px;
+  }
+  .stat-total .num{font-family:'Barlow Condensed',sans-serif; font-size:34px; font-weight:700;}
+  .stat-total .label{color:var(--muted); font-size:13px;}
+
+  .shotlist{
+    list-style:none; margin:0; padding:0;
+    display:flex; flex-direction:column; gap:4px;
+    max-height: 260px; overflow-y:auto;
+  }
+  .shotlist li{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:6px 8px; border-radius:7px; font-size:13px;
+    background:var(--panel-2);
+  }
+  .shotlist li:hover{ background:var(--line); }
+  .shotlist .left{display:flex; align-items:center; gap:8px; min-width:0;}
+  .shotlist .tag{
+    font-size:11px; font-weight:700; padding:2px 6px; border-radius:5px; color:#0B0E12;
+    flex-shrink:0;
+  }
+  .shotlist .idx{color:var(--muted); width:20px; flex-shrink:0;}
+  .shotlist button.del{
+    border:none; background:transparent; color:var(--muted); padding:2px 6px; font-size:14px;
+  }
+  .shotlist button.del:hover{color:var(--error); background:transparent;}
+
+  .action-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .action-row button{flex:1; min-width:0;}
+
+  .empty-note{color:var(--muted); font-size:13px; line-height:1.5;}
+
+  /* Bottom sheet for classifying a shot */
+  .sheet-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,0.45);
+    display:none; align-items:flex-end; justify-content:center;
+    z-index:50;
+  }
+  .sheet-backdrop.show{display:flex;}
+  .sheet{
+    background:var(--panel); border-radius: 16px 16px 0 0;
+    padding: 18px 18px 22px;
+    width:100%; max-width:480px;
+    border:1px solid var(--line); border-bottom:none;
+    animation: slideup .18s ease-out;
+  }
+  @keyframes slideup{from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+  .sheet h3{margin:0 0 4px; font-size:20px;}
+  .sheet p{margin:0 0 14px; color:var(--muted); font-size:13.5px;}
+  .chip-row{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
+  .chip{
+    padding:9px 14px; border-radius:20px; border:1.5px solid var(--line);
+    background:var(--panel-2); font-weight:600; font-size:13.5px; cursor:pointer;
+    color:var(--text);
+  }
+  .chip:hover{transform:translateY(-1px);}
+
+  .field-group{ margin-bottom:12px; }
+  .field-group label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; font-weight:600; }
+  .field-group input{ width:100%; font-size:15px; padding:10px 12px; }
+  .sheet-actions{ display:flex; gap:8px; margin-top:4px; }
+  .sheet-actions button{ flex:1; }
+
+  /* Hit-type popup: floats beside the court, centered on the net */
+  .sheet-backdrop.floating{
+    background: rgba(0,0,0,0.12);
+    align-items:flex-start; justify-content:flex-start;
+  }
+  .sheet-backdrop.floating .sheet{
+    position:fixed;
+    width:290px; max-width:calc(100vw - 24px);
+    border-radius:14px; border-bottom:1px solid var(--line);
+    padding:14px 14px 14px;
+    box-shadow: 0 12px 34px rgba(0,0,0,0.4);
+    animation: popin .14s ease-out;
+  }
+  @keyframes popin{from{transform:scale(0.96); opacity:0;} to{transform:scale(1); opacity:1;}}
+  .sheet-backdrop.floating .sheet h3{font-size:19px;}
+  .sheet-backdrop.floating .sheet p{font-size:12.5px; margin-bottom:10px;}
+  .sheet-backdrop.floating .chip-row{
+    display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:10px;
+  }
+  .sheet-backdrop.floating .chip{ text-align:center; padding:11px 8px; }
+  @media (max-width:880px){
+    .sheet-backdrop.floating .sheet{ width:min(260px, 66vw); padding:12px; }
+    .sheet-backdrop.floating .sheet p{ display:none; }
+    .sheet-backdrop.floating .chip{ padding:14px 6px; font-size:13px; }
+    #skipTagBtn{ padding:12px; }
+  }
+
+  /* Undo lives in the header and stays clickable even while the hit-type popup is open */
+  .court-row{ display:flex; align-items:center; justify-content:center; gap:10px; }
+  .rail-spacer{ width:64px; flex-shrink:0; }
+  #undoBtn.undo-fab{
+    position:relative; z-index:60;
+    width:64px; height:64px; flex-shrink:0;
+    border-radius:50%; padding:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    background:var(--panel); border:2px solid var(--teal); color:var(--text);
+    box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    touch-action:manipulation;
+  }
+  #undoBtn .undo-icon{ font-size:24px; line-height:1; }
+  #undoBtn .undo-text{ font-size:11px; font-weight:700; letter-spacing:.02em; }
+  #undoBtn:hover{ background:rgba(44,151,160,0.18); }
+
+  .live-panel{ align-items:center; z-index:70; padding:12px; }
+  .live-panel .sheet{
+    border-radius:16px; border-bottom:1px solid var(--line);
+    max-height:88vh; overflow-y:auto; display:flex; flex-direction:column; gap:16px;
+  }
+  .live-panel #liveSlot{ display:flex; flex-direction:column; gap:16px; }
+  .live-panel #analyzeBtn{ padding:14px; font-size:15px; }
+  #liveCloseBtn{ font-size:18px; padding:6px 12px; }
+
+  .opp-fields{
+    display:flex; align-items:center; gap:6px; margin-bottom:8px;
+    width:0; min-width:100%; /* match the court's width instead of stretching it */
+    font-size:13px; font-weight:700; color:#F5EFE3;
+  }
+  .opp-fields input{
+    background:rgba(0,0,0,0.22); border:1.5px solid rgba(245,239,227,0.45);
+    color:#FFFFFF; font-size:16px; font-weight:600; padding:8px 10px; border-radius:8px;
+    min-width:0;
+  }
+  .opp-fields input::placeholder{ color:rgba(245,239,227,0.6); font-weight:500; }
+  .opp-fields input:focus{ outline:none; border-color:#FFFFFF; background:rgba(0,0,0,0.32); }
+  #oppNameInput{ flex:1; }
+  #oppGameInput{ width:52px; text-align:center; flex-shrink:0; }
+
+  .court-end-label{
+    font-size:13px; color:var(--muted); font-weight:600;
+    letter-spacing:0.03em;
+  }
+
+  .insights-box{
+    margin-top:10px; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:8px; padding:12px; font-size:13px; line-height:1.55;
+    white-space:pre-wrap; max-height:240px; overflow-y:auto;
+  }
+  .send-row{ display:flex; gap:8px; }
+  .send-row input{ flex:1; min-width:0; }
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2); color:var(--text); border:1px solid var(--line);
+    padding:10px 18px; border-radius:20px; font-size:13.5px;
+    opacity:0; pointer-events:none; transition: opacity .2s ease, transform .2s ease;
+    z-index:80; max-width:90vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  footer.hint{
+    grid-area: sidebar;
+  }
+
+  /* Print styles */
+  .print-only{ display:none; }
+  @media print{
+    body *{ visibility:hidden; }
+    #printArea, #printArea *{ visibility:visible; }
+    #printArea{
+      position:absolute; top:0; left:0; width:100%;
+      display:block !important;
+      background:white; color:#111;
+      padding: 10mm;
+    }
+    #printArea .print-court-frame{ background:var(--court) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    #printArea svg{ width: 100mm; height:auto; }
+    .print-only{ display:block; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <header>
+    <div class="brand">
+      <h1>🏐 Rally Chart</h1>
+      <span>Tap where it started, tap where it landed</span>
+    </div>
+    <div class="game-controls">
+      <select id="gameSelect" title="Switch game"></select>
+      <button id="newGameBtn">New game</button>
+      <button id="editGameBtn" class="ghost" title="Edit opponent / game number">Edit game</button>
+      <input type="file" id="importInput" accept="application/json" style="display:none">
+      <button id="importBtn" class="ghost">Import</button>
+      <button id="exportBtn" class="ghost">Export</button>
+      <button id="liveBtn" class="primary">📊 Live stats</button>
+      <button id="printBtn" class="gold">Print</button>
+    </div>
+  </header>
+
+  <div class="court-wrap">
+    <div class="instruction step1" id="instruction">
+      <span class="dot"></span>
+      <span id="instructionText">Tap where the hit came from</span>
+    </div>
+
+    <div class="court-row">
+    <button id="undoBtn" class="undo-fab" title="Undo last play (Ctrl+Z)" aria-label="Undo last play"><span class="undo-icon">↶</span><span class="undo-text">Undo</span></button>
+    <div class="court-frame">
+      <div class="opp-fields" id="opponentLabel">
+        <span>vs</span>
+        <input type="text" id="oppNameInput" size="1" placeholder="Opponent name" autocomplete="off" enterkeyhint="done" aria-label="Opponent name">
+        <span>Game</span>
+        <input type="text" id="oppGameInput" size="1" inputmode="numeric" autocomplete="off" enterkeyhint="done" aria-label="Game number">
+      </div>
+      <svg id="court" viewBox="0 0 360 760" xmlns="http://www.w3.org/2000/svg">
+        <!-- background -->
+        <rect x="0" y="0" width="360" height="760" fill="transparent"></rect>
+        <!-- court boundary: 9m x 18m, 40px/m, offset 20px each side, net area extra space -->
+        <g id="courtLines" stroke="var(--white-line)" stroke-width="2.5" fill="none">
+          <!-- home half tint, so "our" side reads at a glance -->
+          <rect x="20" y="380" width="320" height="360" fill="var(--teal)" fill-opacity="0.14" stroke="none"></rect>
+          <!-- serve strips along each end line: a hit starting here is a serve -->
+          <rect x="20" y="20" width="320" height="60" fill="#F5EFE3" fill-opacity="0.10" stroke="none"></rect>
+          <rect x="20" y="680" width="320" height="60" fill="#F5EFE3" fill-opacity="0.10" stroke="none"></rect>
+          <line x1="20" y1="80" x2="340" y2="80" stroke-opacity="0.4" stroke-width="1" stroke-dasharray="2 5"></line>
+          <line x1="20" y1="680" x2="340" y2="680" stroke-opacity="0.4" stroke-width="1" stroke-dasharray="2 5"></line>
+          <!-- outer boundary -->
+          <rect x="20" y="20" width="320" height="720" stroke-width="3.5"></rect>
+          <!-- net line (center) -->
+          <line x1="20" y1="380" x2="340" y2="380" stroke-width="4.5" stroke="#f2f2f2"></line>
+          <!-- attack lines, 3m = 120px from net -->
+          <line x1="20" y1="260" x2="340" y2="260" stroke-dasharray="6 6"></line>
+          <line x1="20" y1="500" x2="340" y2="500" stroke-dasharray="6 6"></line>
+          <!-- zone divider verticals (light) -->
+          <line x1="126.6" y1="20" x2="126.6" y2="740" stroke-opacity="0.35" stroke-width="1.2"></line>
+          <line x1="233.3" y1="20" x2="233.3" y2="740" stroke-opacity="0.35" stroke-width="1.2"></line>
+        </g>
+        <g font-family="'Barlow Condensed', sans-serif" font-size="13" font-weight="600" fill="#F5EFE3" fill-opacity="0.55" text-anchor="middle" letter-spacing="2" pointer-events="none">
+          <text x="180" y="55">SERVE</text>
+          <text x="180" y="716">SERVE</text>
+        </g>
+        <!-- net posts -->
+        <g fill="#2E2E2E">
+          <rect x="8" y="372" width="6" height="16" rx="2"></rect>
+          <rect x="346" y="372" width="6" height="16" rx="2"></rect>
+        </g>
+        <!-- serve receive zone guides -->
+        <g id="zonesLayer" pointer-events="none"></g>
+        <!-- shots render here -->
+        <g id="shotsLayer"></g>
+        <!-- pending marker -->
+        <g id="pendingLayer"></g>
+      </svg>
+      <div class="court-end-label" style="text-align:center; margin-top:6px;" id="homeLabel">Home court</div>
+    </div>
+    <div class="rail-spacer" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div>
+      <div class="stat-total">
+        <span class="num" id="statTotal">0</span>
+        <span class="label">shots recorded</span>
+      </div>
+      <div class="legend" id="legend"></div>
+      <p class="empty-note" style="margin-top:8px;">The teal half of the court is your side. Your plays render bright and bold with a teal ring on the starting dot; opponent plays render faded and thinner — same colors by type, just dimmed for theirs.</p>
+    </div>
+
+    <div id="pctBlockWrap">
+      <p class="section-title">Live percentages</p>
+      <table class="pct-table">
+        <thead><tr><th></th><th>Home</th><th>Opp</th></tr></thead>
+        <tbody>
+          <tr><td>Hitting</td><td id="pctHitHome">—</td><td id="pctHitOpp">—</td></tr>
+          <tr><td>Dig</td><td id="pctDigHome">—</td><td id="pctDigOpp">—</td></tr>
+          <tr><td>Serve recv</td><td id="pctRecvHome">—</td><td id="pctRecvOpp">—</td></tr>
+          <tr><td>Block</td><td id="pctBlockHome">—</td><td id="pctBlockOpp">—</td></tr>
+        </tbody>
+      </table>
+      <p class="empty-note" style="margin-top:6px;">Hitting = (kills − hitting/net errors) ÷ total attacks (kills + attempts + errors). Dig / serve receive / block % are each just successes ÷ (successes + that skill's own errors).</p>
+    </div>
+
+    <div class="action-row">
+      <button id="clearBtn" class="danger ghost">Clear game</button>
+    </div>
+
+    <div>
+      <p class="section-title">Serve receive zones</p>
+      <div class="action-row" style="margin-bottom:8px;">
+        <button class="ghost zone-toggle" data-side="home">Home</button>
+        <button class="ghost zone-toggle" data-side="opponent">Opponent</button>
+      </div>
+      <div class="action-row">
+        <button class="ghost zone-formation" data-formation="off">Off</button>
+        <button class="ghost zone-formation" data-formation="3">3-player</button>
+        <button class="ghost zone-formation" data-formation="2">2-player</button>
+      </div>
+    </div>
+
+    <div>
+      <p class="section-title">Shot log</p>
+      <ul class="shotlist" id="shotList"></ul>
+      <p class="empty-note" id="emptyNote">No shots yet — tap the court to start recording this game.</p>
+    </div>
+
+    <div id="insightsWrap">
+      <p class="section-title">Coaching insights</p>
+      <button id="analyzeBtn" class="primary" style="width:100%;">Analyze this game</button>
+      <div class="insights-box" id="insightsBox" style="display:none;"></div>
+      <div class="send-row" id="sendRow" style="display:none; margin-top:10px;">
+        <input type="tel" id="sendNumber" placeholder="Phone number">
+        <button id="sendTextBtn" class="gold">Text it</button>
+      </div>
+      <p class="empty-note" id="sendHint" style="display:none; margin-top:6px;">Opens your phone's messaging app with the number and summary pre-filled — one tap there to actually send it.</p>
+    </div>
+  </aside>
+</div>
+
+<!-- Live stats & analysis panel (the sidebar's percentages + insights move in here while it's open) -->
+<div class="sheet-backdrop live-panel" id="liveBackdrop">
+  <div class="sheet">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <h3 style="margin:0;">Live game analysis</h3>
+      <button id="liveCloseBtn" class="ghost" aria-label="Close">✕</button>
+    </div>
+    <div id="liveSlot"></div>
+  </div>
+</div>
+
+<!-- Classification bottom sheet -->
+<div class="sheet-backdrop floating" id="sheetBackdrop">
+  <div class="sheet" id="classifySheet">
+    <h3>What was it?</h3>
+    <p id="sheetHint">Optional — tag the shot or skip to just log the path.</p>
+    <div class="chip-row" id="chipRow">
+      <div class="chip" data-type="serve" style="border-color:var(--serve);">Serve</div>
+      <div class="chip" data-type="serveError" style="border-color:var(--serveError);">Serve error</div>
+      <div class="chip" data-type="ace" style="border-color:var(--ace);">Ace</div>
+      <div class="chip" data-type="oppServeError" style="border-color:var(--serveError);">Serve error</div>
+      <div class="chip" data-type="receive" style="border-color:var(--receive);">Serve receive</div>
+      <div class="chip" data-type="receiveError" style="border-color:var(--receiveError);">Receive error</div>
+      <div class="chip" data-type="dig" style="border-color:var(--dig);">Dig</div>
+      <div class="chip" data-type="digError" style="border-color:var(--digError);">Dig error</div>
+      <div class="chip" data-type="block" style="border-color:var(--block);">Block</div>
+      <div class="chip" data-type="blockError" style="border-color:var(--blockError);">Block error</div>
+      <div class="chip" data-type="tipAttempt" style="border-color:var(--tipAttempt);">Tip attempt</div>
+      <div class="chip" data-type="killAttempt" style="border-color:var(--killAttempt);">Kill attempt</div>
+      <div class="chip" data-type="kill" style="border-color:var(--kill);">Kill</div>
+      <div class="chip" data-type="hitError" style="border-color:var(--hitError);">Hitting / net error</div>
+    </div>
+    <button id="skipTagBtn" class="ghost" style="width:100%;">Skip tagging</button>
+  </div>
+</div>
+
+<!-- New game / edit game form sheet -->
+<div class="sheet-backdrop" id="gameFormBackdrop">
+  <div class="sheet">
+    <h3 id="gameFormTitle">New game</h3>
+    <p>Top of the court is always the opponent, bottom is always home.</p>
+    <div class="field-group">
+      <label for="formOpponent">Opponent name</label>
+      <input type="text" id="formOpponent" placeholder="e.g. Riverside">
+    </div>
+    <div class="field-group">
+      <label for="formGameNumber">Game number</label>
+      <input type="text" id="formGameNumber" placeholder="e.g. 1">
+    </div>
+    <div class="sheet-actions">
+      <button id="gameFormCancel" class="ghost">Cancel</button>
+      <button id="gameFormSave" class="primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic confirm modal (used instead of native confirm(), which some artifact hosts block) -->
+<div class="sheet-backdrop" id="confirmBackdrop">
+  <div class="sheet">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmMessage"></p>
+    <div class="sheet-actions">
+      <button id="confirmCancel" class="ghost">Cancel</button>
+      <button id="confirmOk" class="danger ghost">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Print-only render target -->
+<div id="printArea" style="display:none;">
+  <h2 id="printTitle" style="font-family:'Barlow Condensed',sans-serif; margin-bottom:2px;"></h2>
+  <p id="printMeta" style="color:#555; margin-top:0; font-size:13px;"></p>
+  <div class="print-court-frame" style="display:inline-block; padding:10px; border-radius:8px;">
+    <div style="text-align:center; font-weight:600; font-size:12px; color:#3a2a12; margin-bottom:4px;">Opponent's court</div>
+    <svg id="printSvg" viewBox="0 0 360 760" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div style="text-align:center; font-weight:600; font-size:12px; color:#3a2a12; margin-top:4px;">Home court</div>
+  </div>
+  <div id="printStats" style="margin-top:14px; font-size:13px;"></div>
+  <div id="printPct" style="margin-top:12px; font-size:13px;"></div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'rallyChart.games.v1';
+  const TYPE_META = {
+    // Active tags — offered in the classify sheet, split by which side the play started on.
+    kill:         { label:'Kill',               hex:'#E0473F' },
+    killAttempt:  { label:'Kill attempt',       hex:'#E8897C' },
+    tipAttempt:   { label:'Tip attempt',        hex:'#E056A0' },
+    dig:          { label:'Dig',                hex:'#43B872' },
+    digError:     { label:'Dig error',          hex:'#2F6B45' },
+    receive:      { label:'Serve receive',      hex:'#3B82F6' },
+    receiveError: { label:'Serve receive error',hex:'#1E4E8C' },
+    serve:        { label:'Serve',              hex:'#A67C52' },
+    serveError:   { label:'Serve error',        hex:'#6B4F30' },
+    ace:          { label:'Ace',                hex:'#B77FE0' },
+    block:        { label:'Block',              hex:'#E3A93F' },
+    blockError:   { label:'Block error',        hex:'#8C5A2B' },
+    hitError:     { label:'Hitting / net error',hex:'#6E1423' },
+    oppServeError:{ label:'Opp serve error',    hex:'#6B4F30' },
+    // Legacy tags — no longer offered as chips, kept so any previously logged shots still render correctly.
+    tip:          { label:'Tip',                hex:'#E056A0' },
+    error:        { label:'Error / out',        hex:'#9B3948' },
+    none:         { label:'Untagged',           hex:'#8A96A6' },
+  };
+
+  const ZONE_PREF_KEY = 'rallyChart.zonePref.v1';
+  const ZONE_LAYOUTS = {
+    opponent: {
+      '3': [{x:73.3, y:164, r:50}, {x:180, y:164, r:50}, {x:286.7, y:164, r:50}],
+      '2': [{x:100, y:170, r:68}, {x:260, y:170, r:68}]
+    },
+    home: {
+      '3': [{x:73.3, y:596, r:50}, {x:180, y:596, r:50}, {x:286.7, y:596, r:50}],
+      '2': [{x:100, y:590, r:68}, {x:260, y:590, r:68}]
+    }
+  };
+  let zonePref = { side: 'home', formation: 'off' };
+
+  let state = { games: [], currentGameId: null };
+  let pending = null; // {from:{x,y}} while awaiting second tap
+
+  function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){ state = JSON.parse(raw); }
+    }catch(e){ console.warn('Could not load saved games', e); }
+    if(!state.games || state.games.length === 0){
+      const g = newGameObj('Opponent', '1');
+      state.games = [g];
+      state.currentGameId = g.id;
+    }
+    // migrate any old-format games (name/date only) so they still render
+    state.games.forEach(g=>{
+      if(g.opponent === undefined){ g.opponent = g.name || 'Opponent'; }
+      if(g.gameNumber === undefined){ g.gameNumber = '1'; }
+    });
+    if(!state.games.find(g => g.id === state.currentGameId)){
+      state.currentGameId = state.games[0].id;
+    }
+  }
+
+  function persist(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch(e){ console.warn('Could not save', e); }
+  }
+
+  function loadZonePref(){
+    try{
+      const raw = localStorage.getItem(ZONE_PREF_KEY);
+      if(raw) zonePref = Object.assign(zonePref, JSON.parse(raw));
+    }catch(e){ /* ignore */ }
+  }
+  function saveZonePref(){
+    try{ localStorage.setItem(ZONE_PREF_KEY, JSON.stringify(zonePref)); }
+    catch(e){ /* ignore */ }
+  }
+
+  function newGameObj(opponent, gameNumber){
+    return { id: uid(), opponent: opponent, gameNumber: gameNumber, date: new Date().toISOString().slice(0,10), shots: [] };
+  }
+
+  function currentGame(){
+    return state.games.find(g => g.id === state.currentGameId);
+  }
+
+  // ---- DOM refs ----
+  const svg = document.getElementById('court');
+  const shotsLayer = document.getElementById('shotsLayer');
+  const zonesLayer = document.getElementById('zonesLayer');
+  const pendingLayer = document.getElementById('pendingLayer');
+  const instructionEl = document.getElementById('instruction');
+  const instructionText = document.getElementById('instructionText');
+  const gameSelect = document.getElementById('gameSelect');
+  const legendEl = document.getElementById('legend');
+  const statTotal = document.getElementById('statTotal');
+  const shotListEl = document.getElementById('shotList');
+  const emptyNote = document.getElementById('emptyNote');
+  const sheetBackdrop = document.getElementById('sheetBackdrop');
+  const gameFormBackdrop = document.getElementById('gameFormBackdrop');
+  const gameFormTitle = document.getElementById('gameFormTitle');
+  const formOpponent = document.getElementById('formOpponent');
+  const formGameNumber = document.getElementById('formGameNumber');
+  let gameFormMode = 'new'; // 'new' | 'edit'
+
+  // ---- serve receive zone overlay ----
+  function renderZonesInto(layerEl){
+    layerEl.innerHTML = '';
+    if(zonePref.formation === 'off') return;
+    const positions = (ZONE_LAYOUTS[zonePref.side] || {})[zonePref.formation] || [];
+    const ns = 'http://www.w3.org/2000/svg';
+    positions.forEach((p, i)=>{
+      const c = document.createElementNS(ns,'circle');
+      c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); c.setAttribute('r', p.r);
+      c.setAttribute('fill', 'rgba(245,239,227,0.08)');
+      c.setAttribute('stroke', '#F5EFE3');
+      c.setAttribute('stroke-width', '2');
+      c.setAttribute('stroke-dasharray', '5 5');
+      layerEl.appendChild(c);
+      const label = document.createElementNS(ns,'text');
+      label.setAttribute('x', p.x); label.setAttribute('y', p.y + 4);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '13');
+      label.setAttribute('font-family', "'Barlow Condensed', sans-serif");
+      label.setAttribute('fill', '#F5EFE3');
+      label.setAttribute('fill-opacity', '0.75');
+      label.textContent = i + 1;
+      layerEl.appendChild(label);
+    });
+  }
+
+  function updateZoneButtons(){
+    document.querySelectorAll('.zone-toggle').forEach(b=>
+      b.classList.toggle('active', b.dataset.side === zonePref.side));
+    document.querySelectorAll('.zone-formation').forEach(b=>
+      b.classList.toggle('active', b.dataset.formation === zonePref.formation));
+  }
+
+  document.querySelectorAll('.zone-toggle').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      zonePref.side = btn.dataset.side;
+      updateZoneButtons(); renderZonesInto(zonesLayer); saveZonePref();
+    });
+  });
+  document.querySelectorAll('.zone-formation').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      zonePref.formation = btn.dataset.formation;
+      updateZoneButtons(); renderZonesInto(zonesLayer); saveZonePref();
+    });
+  });
+
+  function svgPoint(evt){
+    const pt = svg.createSVGPoint();
+    const t = (evt.touches && evt.touches[0]) ? evt.touches[0] : evt;
+    pt.x = t.clientX; pt.y = t.clientY;
+    const ctm = svg.getScreenCTM();
+    if(!ctm) return {x:0,y:0};
+    const loc = pt.matrixTransform(ctm.inverse());
+    // clamp inside court boundary (20..340 x, 20..740 y)
+    return {
+      x: Math.min(340, Math.max(20, loc.x)),
+      y: Math.min(740, Math.max(20, loc.y))
+    };
+  }
+
+  function onCourtTap(evt){
+    evt.preventDefault();
+    const p = svgPoint(evt);
+    if(!pending){
+      pending = { from: p };
+      drawPendingFrom(p);
+      instructionEl.classList.add('step2');
+      instructionText.textContent = 'Now tap where it landed';
+    } else {
+      pending.to = p;
+      openClassifySheet();
+    }
+  }
+
+  svg.addEventListener('pointerdown', onCourtTap);
+
+  function drawPendingFrom(p){
+    pendingLayer.innerHTML = '';
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); c.setAttribute('r', 7);
+    c.setAttribute('fill', '#F5EFE3');
+    c.setAttribute('stroke', '#2C97A0'); c.setAttribute('stroke-width', '2.5');
+    pendingLayer.appendChild(c);
+  }
+
+  function resetPending(){
+    pending = null;
+    pendingLayer.innerHTML = '';
+    instructionEl.classList.remove('step2');
+    instructionText.textContent = 'Tap where the hit came from';
+  }
+
+  // On touch devices, the tap that opens this sheet (via pointerdown) is followed a moment later
+  // by the browser's own compatibility "click" event for that same tap — but by then the sheet is
+  // already open, so that click lands on whatever chip happens to be under the finger and silently
+  // finalizes it before the person ever sees the options. Ignore clicks inside the sheet for a brief
+  // window right after it opens so only a deliberate, separate tap can pick an option.
+  let sheetOpenedAt = 0;
+  function sheetJustOpened(){ return Date.now() - sheetOpenedAt < 150; }
+
+  // Which tags the popup offers depends on where the hit started:
+  //   our back line      -> serving options only
+  //   their back line    -> their serve: their serve error, or how we received it
+  //   our side, mid-court  -> our attack outcomes (+ block error)
+  //   their side, mid-court -> how we defended it (dig / block)
+  const SERVE_BAND = 60; // depth of the serve strip inside each end line, in court units (~1.5 m)
+  const TAG_CONTEXTS = {
+    homeServe: ['serve','serveError','ace'],
+    oppServe:  ['oppServeError','receive','receiveError'],
+    homeRally: ['tipAttempt','killAttempt','kill','hitError','blockError'],
+    oppRally:  ['dig','digError','block','blockError'],
+  };
+  const CONTEXT_HINTS = {
+    homeServe: 'Our serve — how did it go?',
+    oppServe:  'Their serve — how did we handle it?',
+    homeRally: 'Our attack — tag the result.',
+    oppRally:  'Coming from the opponent — tag how you handled it.',
+  };
+  function contextFor(from){
+    if(from.y >= 740 - SERVE_BAND) return 'homeServe';
+    if(from.y <= 20 + SERVE_BAND) return 'oppServe';
+    return from.y >= 380 ? 'homeRally' : 'oppRally';
+  }
+  function openClassifySheet(){
+    const ctx = contextFor(pending.from);
+    const row = document.getElementById('chipRow');
+    row.querySelectorAll('.chip').forEach(chip=>{ chip.style.display = 'none'; });
+    TAG_CONTEXTS[ctx].forEach(type=>{
+      const chip = row.querySelector('.chip[data-type="'+type+'"]');
+      chip.style.display = '';
+      row.appendChild(chip); // keep the context's own order so pairs line up
+    });
+    document.getElementById('sheetHint').textContent = CONTEXT_HINTS[ctx];
+    sheetBackdrop.classList.add('show');
+    positionClassifySheet();
+    sheetOpenedAt = Date.now();
+  }
+
+  // Places the hit-type popup just right of the court, vertically centered on the net.
+  // If there isn't room to the right (phones, narrow windows), it tucks over the right
+  // edge of the court instead, still centered on the net.
+  function positionClassifySheet(){
+    const sheetEl = document.getElementById('classifySheet');
+    const frameRect = document.querySelector('.court-frame').getBoundingClientRect();
+    const ctm = svg.getScreenCTM();
+    let netY = frameRect.top + frameRect.height / 2;
+    if(ctm){
+      const pt = svg.createSVGPoint(); pt.x = 340; pt.y = 380;
+      netY = pt.matrixTransform(ctm).y;
+    }
+    const w = sheetEl.offsetWidth, h = sheetEl.offsetHeight, pad = 12;
+    let left = frameRect.right + 14;
+    if(left + w > window.innerWidth - pad){
+      left = window.innerWidth - w - 8;   // no room beside the court: hug the right edge, under the thumb
+    }
+    left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
+    let top = netY - h / 2;
+    top = Math.max(pad, Math.min(top, window.innerHeight - h - pad));
+    sheetEl.style.left = left + 'px';
+    sheetEl.style.top = top + 'px';
+  }
+  window.addEventListener('resize', ()=>{
+    if(sheetBackdrop.classList.contains('show')) positionClassifySheet();
+  });
+  function closeClassifySheet(){
+    sheetBackdrop.classList.remove('show');
+  }
+
+  sheetBackdrop.addEventListener('click', (e)=>{
+    if(sheetJustOpened()) return;
+    if(e.target === sheetBackdrop){ finalizeShot('none'); }
+  });
+  document.getElementById('skipTagBtn').addEventListener('click', ()=>{
+    if(sheetJustOpened()) return;
+    finalizeShot('none');
+  });
+  document.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      if(sheetJustOpened()) return;
+      finalizeShot(chip.dataset.type);
+    });
+  });
+
+  function finalizeShot(type){
+    if(pending && pending.from && pending.to){
+      const game = currentGame();
+      game.shots.push({
+        id: uid(),
+        from: pending.from,
+        to: pending.to,
+        type: type,
+        ts: Date.now()
+      });
+      persist();
+      render();
+    }
+    closeClassifySheet();
+    resetPending();
+  }
+
+  // ---- undo (button + Ctrl/Cmd+Z) ----
+  // Cascades: cancel an open tag sheet, then an in-progress first tap, then the last saved shot.
+  function handleUndo(){
+    if(sheetBackdrop.classList.contains('show')){
+      closeClassifySheet();
+      resetPending();
+      return;
+    }
+    if(pending && pending.from && !pending.to){
+      resetPending();
+      return;
+    }
+    const game = currentGame();
+    if(game.shots.length){
+      game.shots.pop();
+      persist();
+      render();
+    }
+  }
+
+  document.addEventListener('keydown', (e)=>{
+    const activeTag = (document.activeElement && document.activeElement.tagName) || '';
+    const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
+    if(!isTyping && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){
+      e.preventDefault();
+      handleUndo();
+    }
+  });
+
+  // ---- team / zone helpers ----
+  // The active tag set is entirely about what YOUR team did — Dig/Receive/Block describe how you
+  // handled an incoming opponent hit, Serve/Attempt/Kill describe your own initiating play. So these
+  // tags always count as "home" for stats and styling, even when the play started on the opponent's
+  // side (e.g. a Dig, tapped from where their attack came from). Legacy tags (from before this change)
+  // still fall back to geometric origin — top half (y < net) is the opponent's court.
+  const HOME_TAG_TYPES = new Set(['dig','digError','receive','receiveError','block','blockError','serve','serveError','ace','tipAttempt','killAttempt','kill','hitError']);
+  function teamOf(shot){
+    if(shot.type === 'oppServeError') return 'opponent';
+    if(HOME_TAG_TYPES.has(shot.type)) return 'home';
+    return shot.from.y < 380 ? 'opponent' : 'home';
+  }
+  function zoneOf(point){
+    const half = point.y < 380 ? 'opponent' : 'home';
+    const isFront = half === 'opponent' ? (point.y >= 260) : (point.y <= 500);
+    const depth = isFront ? 'front' : 'back';
+    const col = point.x < 126.6 ? 'left' : (point.x < 233.3 ? 'middle' : 'right');
+    return half + ' ' + depth + ' ' + col;
+  }
+
+  function teamTypeCounts(shots){
+    const counts = { home:{}, opponent:{} };
+    shots.forEach(s=>{
+      const team = teamOf(s);
+      counts[team][s.type] = (counts[team][s.type] || 0) + 1;
+    });
+    return counts;
+  }
+
+  // Live percentages, derived from the type tags already being logged. Since every active tag now
+  // describes a home-team action (see HOME_TAG_TYPES above), each formula is self-contained — no need
+  // to reference an "opponent" bucket for these, though legacy opponent-tagged kill/tip/ace (from
+  // before this change) still count if present, for backward compatibility with older data.
+  // - Hitting %   = (Kills - Errors) / (Kills + Attempts + Errors) — standard attack-efficiency formula.
+  // - Dig %       = Digs / (Digs + Dig errors [+ legacy opponent Kills/Tips]).
+  // - Serve Recv %= Receives / (Receives + Receive errors [+ legacy opponent Aces]).
+  // - Block %     = Blocks / (Blocks + Block errors).
+  function computePercentages(counts){
+    function hitPct(c){
+      const k = c.kill||0, a = (c.tipAttempt||0) + (c.killAttempt||0), e = (c.error||0) + (c.hitError||0);
+      const attempts = k + a + e;
+      return attempts ? (k - e) / attempts : null;
+    }
+    function digPct(own, opp){
+      const digs = own.dig||0;
+      const denom = digs + (own.digError||0) + (opp.kill||0) + (opp.tip||0);
+      return denom ? digs / denom : null;
+    }
+    function recvPct(own, opp){
+      const recv = own.receive||0;
+      const denom = recv + (own.receiveError||0) + (opp.ace||0);
+      return denom ? recv / denom : null;
+    }
+    function blockPct(c){
+      const b = c.block||0, be = c.blockError||0;
+      const denom = b + be;
+      return denom ? b / denom : null;
+    }
+    const home = counts.home, opp = counts.opponent;
+    return {
+      home:     { hit: hitPct(home), dig: digPct(home, opp), recv: recvPct(home, opp), block: blockPct(home) },
+      opponent: { hit: hitPct(opp),  dig: digPct(opp, home), recv: recvPct(opp, home), block: blockPct(opp) }
+    };
+  }
+  function fmtPct(v){ return v === null ? '—' : Math.round(v * 100) + '%'; }
+
+  // ---- rendering ----
+  function shotColor(type){ return (TYPE_META[type] || TYPE_META.none).hex; }
+
+  function renderShotsInto(layerEl, shots){
+    layerEl.innerHTML = '';
+    shots.forEach((s, i)=>{
+      const col = shotColor(s.type);
+      const team = teamOf(s);
+      const isHome = team === 'home';
+      const lineOpacity = isHome ? 0.9 : 0.35;
+      const lineWidth = isHome ? 2.5 : 1.6;
+      const dotOpacity = isHome ? 1 : 0.45;
+      const originStrokeOpacity = isHome ? 1 : 0.5;
+      const ns = 'http://www.w3.org/2000/svg';
+
+      const line = document.createElementNS(ns,'line');
+      line.setAttribute('x1', s.from.x); line.setAttribute('y1', s.from.y);
+      line.setAttribute('x2', s.to.x); line.setAttribute('y2', s.to.y);
+      line.setAttribute('stroke', col); line.setAttribute('stroke-width', lineWidth);
+      line.setAttribute('stroke-opacity', lineOpacity);
+      line.setAttribute('marker-end', 'url(#arrowhead-'+s.type+'-'+team+')');
+      layerEl.appendChild(line);
+
+      const origin = document.createElementNS(ns,'circle');
+      origin.setAttribute('cx', s.from.x); origin.setAttribute('cy', s.from.y);
+      origin.setAttribute('r', 4.5); origin.setAttribute('fill', '#fff');
+      origin.setAttribute('fill-opacity', isHome ? 1 : 0.6);
+      origin.setAttribute('stroke', col); origin.setAttribute('stroke-width', 2);
+      origin.setAttribute('stroke-opacity', originStrokeOpacity);
+
+      if(isHome){
+        const halo = document.createElementNS(ns,'circle');
+        halo.setAttribute('cx', s.from.x); halo.setAttribute('cy', s.from.y);
+        halo.setAttribute('r', 8.5);
+        halo.setAttribute('fill', 'none');
+        halo.setAttribute('stroke', '#2C97A0');
+        halo.setAttribute('stroke-width', 2.5);
+        layerEl.appendChild(halo);
+      }
+      layerEl.appendChild(origin);
+
+      const land = document.createElementNS(ns,'circle');
+      land.setAttribute('cx', s.to.x); land.setAttribute('cy', s.to.y);
+      land.setAttribute('r', 6); land.setAttribute('fill', col);
+      land.setAttribute('fill-opacity', dotOpacity);
+      land.setAttribute('stroke', '#12161c'); land.setAttribute('stroke-width', 1);
+      land.setAttribute('stroke-opacity', isHome ? 1 : 0.5);
+      layerEl.appendChild(land);
+    });
+  }
+
+  function ensureArrowDefs(targetSvg){
+    let defs = targetSvg.querySelector('defs');
+    if(!defs){
+      defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+      targetSvg.insertBefore(defs, targetSvg.firstChild);
+    }
+    defs.innerHTML = '';
+    ['home','opponent'].forEach(team=>{
+      const opacity = team === 'home' ? 1 : 0.4;
+      Object.keys(TYPE_META).forEach(type=>{
+        const marker = document.createElementNS('http://www.w3.org/2000/svg','marker');
+        marker.setAttribute('id','arrowhead-'+type+'-'+team);
+        marker.setAttribute('markerWidth','8'); marker.setAttribute('markerHeight','8');
+        marker.setAttribute('refX','6'); marker.setAttribute('refY','3');
+        marker.setAttribute('orient','auto');
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d','M0,0 L6,3 L0,6 Z');
+        path.setAttribute('fill', TYPE_META[type].hex);
+        path.setAttribute('fill-opacity', opacity);
+        marker.appendChild(path);
+        defs.appendChild(marker);
+      });
+    });
+  }
+  ensureArrowDefs(svg);
+
+  function render(){
+    const game = currentGame();
+
+    // game selector
+    gameSelect.innerHTML = '';
+    state.games.forEach(g=>{
+      const opt = document.createElement('option');
+      opt.value = g.id; opt.textContent = 'vs ' + g.opponent + ' — Game ' + g.gameNumber;
+      if(g.id === game.id) opt.selected = true;
+      gameSelect.appendChild(opt);
+    });
+
+    // opponent / game number fields on the court
+    if(document.activeElement !== oppNameInput) oppNameInput.value = game.opponent === 'Opponent' ? '' : game.opponent;
+    if(document.activeElement !== oppGameInput) oppGameInput.value = game.gameNumber;
+
+    // court shots
+    renderShotsInto(shotsLayer, game.shots);
+
+    // stats
+    statTotal.textContent = game.shots.length;
+    const counts = {};
+    Object.keys(TYPE_META).forEach(t=> counts[t]=0);
+    game.shots.forEach(s=> counts[s.type] = (counts[s.type]||0)+1 );
+    legendEl.innerHTML = '';
+    Object.keys(TYPE_META).forEach(t=>{
+      const row = document.createElement('div');
+      row.className='legend-row';
+      row.innerHTML = `<div class="legend-left"><span class="swatch" style="background:${TYPE_META[t].hex}"></span>${TYPE_META[t].label}</div><span class="legend-count">${counts[t]}</span>`;
+      legendEl.appendChild(row);
+    });
+
+    // live percentages
+    const pct = computePercentages(teamTypeCounts(game.shots));
+    document.getElementById('pctHitHome').textContent = fmtPct(pct.home.hit);
+    document.getElementById('pctHitOpp').textContent = fmtPct(pct.opponent.hit);
+    document.getElementById('pctDigHome').textContent = fmtPct(pct.home.dig);
+    document.getElementById('pctDigOpp').textContent = fmtPct(pct.opponent.dig);
+    document.getElementById('pctRecvHome').textContent = fmtPct(pct.home.recv);
+    document.getElementById('pctRecvOpp').textContent = fmtPct(pct.opponent.recv);
+    document.getElementById('pctBlockHome').textContent = fmtPct(pct.home.block);
+    document.getElementById('pctBlockOpp').textContent = fmtPct(pct.opponent.block);
+
+    // shot list
+    shotListEl.innerHTML = '';
+    emptyNote.style.display = game.shots.length ? 'none' : 'block';
+    game.shots.slice().reverse().forEach((s, ri)=>{
+      const idx = game.shots.length - ri;
+      const isHome = teamOf(s) === 'home';
+      const li = document.createElement('li');
+      const teamMark = isHome ? '<span title="Your side" style="color:#2C97A0; font-weight:700; margin-right:2px;">●</span>' : '<span title="Opponent" style="color:var(--muted); margin-right:2px;">○</span>';
+      const tagStyle = 'background:' + shotColor(s.type) + '; opacity:' + (isHome ? '1' : '0.55') + ';';
+      li.innerHTML = `<div class="left">${teamMark}<span class="idx">${idx}</span><span class="tag" style="${tagStyle}">${TYPE_META[s.type].label}</span></div><button class="del" data-id="${s.id}" title="Delete">✕</button>`;
+      shotListEl.appendChild(li);
+    });
+    shotListEl.querySelectorAll('.del').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.dataset.id;
+        game.shots = game.shots.filter(s=> s.id !== id);
+        persist(); render();
+      });
+    });
+
+    document.getElementById('clearBtn').disabled = game.shots.length === 0;
+  }
+
+  // ---- custom confirm / toast (native confirm/alert can be blocked inside a sandboxed artifact frame) ----
+  const confirmBackdrop = document.getElementById('confirmBackdrop');
+  const confirmTitleEl = document.getElementById('confirmTitle');
+  const confirmMessageEl = document.getElementById('confirmMessage');
+  let confirmHandler = null;
+
+  function showConfirm(message, onConfirm, title){
+    confirmTitleEl.textContent = title || 'Are you sure?';
+    confirmMessageEl.textContent = message;
+    confirmHandler = onConfirm;
+    confirmBackdrop.classList.add('show');
+  }
+  function closeConfirm(){ confirmBackdrop.classList.remove('show'); confirmHandler = null; }
+  document.getElementById('confirmCancel').addEventListener('click', closeConfirm);
+  confirmBackdrop.addEventListener('click', (e)=>{ if(e.target === confirmBackdrop) closeConfirm(); });
+  document.getElementById('confirmOk').addEventListener('click', ()=>{
+    const fn = confirmHandler;
+    closeConfirm();
+    if(fn) fn();
+  });
+
+  let toastTimer = null;
+  function showToast(message){
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toast.classList.remove('show'), 3200);
+  }
+
+  function resetInsights(){
+    const box = document.getElementById('insightsBox');
+    const row = document.getElementById('sendRow');
+    const hint = document.getElementById('sendHint');
+    box.style.display = 'none';
+    box.textContent = '';
+    row.style.display = 'none';
+    hint.style.display = 'none';
+    lastInsights = '';
+  }
+
+  // ---- header controls ----
+  // ---- fillable opponent name / game number, right on the court ----
+  const oppNameInput = document.getElementById('oppNameInput');
+  const oppGameInput = document.getElementById('oppGameInput');
+  function syncGameLabel(){
+    const game = currentGame();
+    const opt = gameSelect.querySelector('option[value="' + game.id + '"]');
+    if(opt) opt.textContent = 'vs ' + game.opponent + ' — Game ' + game.gameNumber;
+    persist();
+  }
+  oppNameInput.addEventListener('input', ()=>{
+    currentGame().opponent = oppNameInput.value.trim() || 'Opponent';
+    syncGameLabel();
+  });
+  oppGameInput.addEventListener('input', ()=>{
+    currentGame().gameNumber = oppGameInput.value.trim() || '1';
+    syncGameLabel();
+  });
+  [oppNameInput, oppGameInput].forEach(inp=>{
+    inp.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') inp.blur(); });
+    inp.addEventListener('blur', render);
+  });
+
+  gameSelect.addEventListener('change', ()=>{
+    state.currentGameId = gameSelect.value;
+    resetPending();
+    resetInsights();
+    persist(); render();
+  });
+
+  function openGameForm(mode){
+    gameFormMode = mode;
+    if(mode === 'edit'){
+      const game = currentGame();
+      gameFormTitle.textContent = 'Edit game';
+      formOpponent.value = game.opponent;
+      formGameNumber.value = game.gameNumber;
+    } else {
+      gameFormTitle.textContent = 'New game';
+      formOpponent.value = '';
+      formGameNumber.value = String(state.games.length + 1);
+    }
+    gameFormBackdrop.classList.add('show');
+    setTimeout(()=> formOpponent.focus(), 50);
+  }
+  function closeGameForm(){ gameFormBackdrop.classList.remove('show'); }
+
+  document.getElementById('newGameBtn').addEventListener('click', ()=> openGameForm('new'));
+  document.getElementById('editGameBtn').addEventListener('click', ()=> openGameForm('edit'));
+  document.getElementById('gameFormCancel').addEventListener('click', closeGameForm);
+  gameFormBackdrop.addEventListener('click', (e)=>{ if(e.target === gameFormBackdrop) closeGameForm(); });
+
+  document.getElementById('gameFormSave').addEventListener('click', ()=>{
+    const opponent = formOpponent.value.trim() || 'Opponent';
+    const gameNumber = formGameNumber.value.trim() || '1';
+    if(gameFormMode === 'new'){
+      const g = newGameObj(opponent, gameNumber);
+      state.games.push(g);
+      state.currentGameId = g.id;
+      resetPending();
+      resetInsights();
+    } else {
+      const game = currentGame();
+      game.opponent = opponent;
+      game.gameNumber = gameNumber;
+    }
+    persist(); render();
+    closeGameForm();
+  });
+
+  document.getElementById('undoBtn').addEventListener('click', handleUndo);
+
+  document.getElementById('clearBtn').addEventListener('click', ()=>{
+    const game = currentGame();
+    showConfirm(
+      'Clear all shots for vs ' + game.opponent + ' — Game ' + game.gameNumber + '? This cannot be undone.',
+      ()=>{
+        game.shots = [];
+        persist(); render();
+        resetInsights();
+      }
+    );
+  });
+
+  // ---- export / import ----
+  document.getElementById('exportBtn').addEventListener('click', async ()=>{
+    const data = JSON.stringify(state, null, 2);
+    const filename = 'rally-chart-backup-' + new Date().toISOString().slice(0,10) + '.json';
+    try{
+      const downloads = await claude.use('downloads');
+      if(downloads){
+        try{
+          await downloads.save({ filename, data });
+        }catch(err){
+          if(err && err.code !== 'declined'){
+            showToast('Could not save the file: ' + (err.message || err.code));
+          }
+        }
+        return;
+      }
+    }catch(e){ /* fall through to manual fallback */ }
+    // fallback 1: open a tab the viewer can save manually
+    let win = null;
+    try{ win = window.open(); }catch(e){ /* blocked */ }
+    if(win){
+      win.document.write('<pre>'+data.replace(/</g,'&lt;')+'</pre>');
+      return;
+    }
+    // fallback 2: copy the backup JSON to the clipboard
+    try{
+      await navigator.clipboard.writeText(data);
+      showToast('Backup copied to clipboard — paste it into a text file to save it.');
+    }catch(e){
+      showToast('Could not save or copy the backup in this browser.');
+    }
+  });
+
+  document.getElementById('importBtn').addEventListener('click', ()=>{
+    document.getElementById('importInput').click();
+  });
+  document.getElementById('importInput').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const imported = JSON.parse(reader.result);
+        if(!imported.games || !Array.isArray(imported.games)) throw new Error('bad format');
+        // merge: append imported games, avoid id collisions
+        imported.games.forEach(g=>{
+          g.id = uid();
+          if(g.opponent === undefined){ g.opponent = g.name || 'Opponent'; }
+          if(g.gameNumber === undefined){ g.gameNumber = '1'; }
+          state.games.push(g);
+        });
+        state.currentGameId = imported.games[imported.games.length-1]?.id || state.currentGameId;
+        resetInsights();
+        persist(); render();
+        showToast('Imported ' + imported.games.length + ' game(s).');
+      }catch(err){
+        showToast('That file does not look like a Rally Chart backup.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // ---- print ----
+  document.getElementById('printBtn').addEventListener('click', ()=>{
+    const game = currentGame();
+    document.getElementById('printTitle').textContent = 'vs ' + game.opponent + ' — Game ' + game.gameNumber;
+    document.getElementById('printMeta').textContent = game.date + '  ·  ' + game.shots.length + ' shots recorded';
+
+    const printSvg = document.getElementById('printSvg');
+    printSvg.innerHTML = svg.querySelector('#courtLines').outerHTML;
+    // net posts
+    const postsGroup = document.createElementNS('http://www.w3.org/2000/svg','g');
+    postsGroup.setAttribute('fill', '#2E2E2E');
+    postsGroup.innerHTML = '<rect x="8" y="372" width="6" height="16" rx="2"></rect><rect x="346" y="372" width="6" height="16" rx="2"></rect>';
+    printSvg.appendChild(postsGroup);
+
+    ensureArrowDefs(printSvg);
+    const printZonesLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+    printSvg.appendChild(printZonesLayer);
+    renderZonesInto(printZonesLayer);
+    const layer = document.createElementNS('http://www.w3.org/2000/svg','g');
+    printSvg.appendChild(layer);
+    renderShotsInto(layer, game.shots);
+
+    const counts = {};
+    Object.keys(TYPE_META).forEach(t=> counts[t]=0);
+    game.shots.forEach(s=> counts[s.type] = (counts[s.type]||0)+1 );
+    const statsEl = document.getElementById('printStats');
+    statsEl.innerHTML = Object.keys(TYPE_META).map(t=>
+      `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:16px;">
+        <span style="width:10px;height:10px;background:${TYPE_META[t].hex};display:inline-block;border-radius:2px;"></span>
+        ${TYPE_META[t].label}: ${counts[t]}
+      </span>`
+    ).join('');
+
+    const pct = computePercentages(teamTypeCounts(game.shots));
+    const pctEl = document.getElementById('printPct');
+    pctEl.innerHTML =
+      '<table style="border-collapse:collapse;">' +
+      '<tr><th style="text-align:left; padding:3px 12px 3px 0;"></th><th style="text-align:right; padding:3px 12px;">Home</th><th style="text-align:right; padding:3px 0;">Opponent</th></tr>' +
+      '<tr><td style="padding:3px 12px 3px 0;">Hitting</td><td style="text-align:right; padding:3px 12px;">' + fmtPct(pct.home.hit) + '</td><td style="text-align:right; padding:3px 0;">' + fmtPct(pct.opponent.hit) + '</td></tr>' +
+      '<tr><td style="padding:3px 12px 3px 0;">Dig</td><td style="text-align:right; padding:3px 12px;">' + fmtPct(pct.home.dig) + '</td><td style="text-align:right; padding:3px 0;">' + fmtPct(pct.opponent.dig) + '</td></tr>' +
+      '<tr><td style="padding:3px 12px 3px 0;">Serve receive</td><td style="text-align:right; padding:3px 12px;">' + fmtPct(pct.home.recv) + '</td><td style="text-align:right; padding:3px 0;">' + fmtPct(pct.opponent.recv) + '</td></tr>' +
+      '<tr><td style="padding:3px 12px 3px 0;">Block</td><td style="text-align:right; padding:3px 12px;">' + fmtPct(pct.home.block) + '</td><td style="text-align:right; padding:3px 0;">' + fmtPct(pct.opponent.block) + '</td></tr>' +
+      '</table>';
+
+    window.print();
+  });
+
+  // ---- coaching insights ----
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const insightsBox = document.getElementById('insightsBox');
+  const sendRow = document.getElementById('sendRow');
+  const sendHint = document.getElementById('sendHint');
+  const sendNumberInput = document.getElementById('sendNumber');
+  const SEND_NUMBER_KEY = 'rallyChart.sendNumber.v1';
+  let lastInsights = '';
+
+  try{ sendNumberInput.value = localStorage.getItem(SEND_NUMBER_KEY) || ''; }catch(e){ /* ignore */ }
+  sendNumberInput.addEventListener('change', ()=>{
+    try{ localStorage.setItem(SEND_NUMBER_KEY, sendNumberInput.value.trim()); }catch(e){ /* ignore */ }
+  });
+
+  function buildStatsSummary(game){
+    const counts = teamTypeCounts(game.shots);
+    const zoneCounts = {};
+    game.shots.forEach(s=>{
+      const z = zoneOf(s.to);
+      zoneCounts[z] = (zoneCounts[z] || 0) + 1;
+    });
+    const pct = computePercentages(counts);
+    return {
+      opponent: game.opponent, gameNumber: game.gameNumber, totalShots: game.shots.length,
+      byTeamType: counts, zoneCounts,
+      percentages: {
+        home: { hitting: pct.home.hit, dig: pct.home.dig, serveReceive: pct.home.recv, block: pct.home.block },
+        opponent: { hitting: pct.opponent.hit, dig: pct.opponent.dig, serveReceive: pct.opponent.recv, block: pct.opponent.block }
+      }
+    };
+  }
+
+  function fallbackSummaryText(summary){
+    const lines = [];
+    lines.push('Quick stats — vs ' + summary.opponent + ', Game ' + summary.gameNumber + ' (' + summary.totalShots + ' shots logged)');
+    ['home','opponent'].forEach(team=>{
+      const t = summary.byTeamType[team] || {};
+      const parts = Object.keys(t).map(k => (TYPE_META[k] ? TYPE_META[k].label : k) + ': ' + t[k]);
+      lines.push((team === 'home' ? 'Home' : 'Opponent') + ' — ' + (parts.join(', ') || 'no shots logged'));
+      const p = summary.percentages[team];
+      lines.push('  Hitting ' + fmtPct(p.hitting) + ' · Dig ' + fmtPct(p.dig) + ' · Serve recv ' + fmtPct(p.serveReceive) + ' · Block ' + fmtPct(p.block));
+    });
+    const topZone = Object.entries(summary.zoneCounts).sort((a,b)=> b[1]-a[1])[0];
+    if(topZone){
+      lines.push('Most active landing area: ' + topZone[0] + ' (' + topZone[1] + ' shots)');
+    }
+    lines.push('(Connect Claude access in this artifact for full written recommendations — showing raw stats instead.)');
+    return lines.join('\n');
+  }
+
+  // ---- live stats panel ----
+  const liveBackdrop = document.getElementById('liveBackdrop');
+  const liveSlot = document.getElementById('liveSlot');
+  const pctWrap = document.getElementById('pctBlockWrap');
+  const insWrap = document.getElementById('insightsWrap');
+  const pctHome = { parent: pctWrap.parentNode, next: pctWrap.nextSibling };
+  const insHome = { parent: insWrap.parentNode, next: insWrap.nextSibling };
+  function openLivePanel(){
+    if(pending) { closeClassifySheet(); resetPending(); }
+    liveSlot.appendChild(pctWrap);
+    liveSlot.appendChild(insWrap);
+    liveBackdrop.classList.add('show');
+  }
+  function closeLivePanel(){
+    pctHome.parent.insertBefore(pctWrap, pctHome.next);
+    insHome.parent.insertBefore(insWrap, insHome.next);
+    liveBackdrop.classList.remove('show');
+  }
+  document.getElementById('liveBtn').addEventListener('click', openLivePanel);
+  document.getElementById('liveCloseBtn').addEventListener('click', closeLivePanel);
+  liveBackdrop.addEventListener('click', (e)=>{ if(e.target === liveBackdrop) closeLivePanel(); });
+
+  analyzeBtn.addEventListener('click', async ()=>{
+    const game = currentGame();
+    insightsBox.style.display = 'block';
+    if(!game.shots.length){
+      insightsBox.textContent = "Log a few plays first — there's nothing to analyze yet.";
+      return;
+    }
+    insightsBox.textContent = 'Analyzing…';
+    analyzeBtn.disabled = true;
+
+    const summary = buildStatsSummary(game);
+    let text = null;
+    try{
+      const sample = await claude.use('sample');
+      if(sample){
+        const prompt = 'You are a volleyball assistant coach helping the HOME team review a match. ' +
+          'The court is a 3x2 grid on each side (left/middle/right, front/back); "opponent" is the far court, "home" is the near court. ' +
+          "Here is this game's logged play data as JSON, including precomputed hitting/dig/serve-receive percentages per team: " + JSON.stringify(summary) + '. ' +
+          'Give 3 to 5 short, specific, actionable recommendations for the home team to adjust — serve receive positioning, defensive coverage, attack shot selection, or error reduction. ' +
+          "Reference the actual percentages, zones, and counts from the data (e.g. cite the home team's hitting or dig percentage where relevant). " +
+          'Keep it under 150 words, plain text, a dash before each point, no headers or markdown.';
+        const res = await sample(prompt, { modelTier: 'quick' });
+        if(res && res.text) text = res.text.trim();
+      }
+    }catch(e){ /* fall back below */ }
+
+    if(!text){ text = fallbackSummaryText(summary); }
+    lastInsights = text;
+    insightsBox.textContent = text;
+    analyzeBtn.disabled = false;
+    sendRow.style.display = 'flex';
+    sendHint.style.display = 'block';
+  });
+
+  document.getElementById('sendTextBtn').addEventListener('click', ()=>{
+    const number = sendNumberInput.value.trim().replace(/\s+/g,'');
+    if(!number){ showToast('Enter a phone number first.'); return; }
+    try{ localStorage.setItem(SEND_NUMBER_KEY, number); }catch(e){ /* ignore */ }
+    const body = (lastInsights || 'No insights generated yet.').slice(0, 480);
+    const uri = 'sms:' + number + '?&body=' + encodeURIComponent(body);
+    window.location.href = uri;
+  });
+
+  // ---- init ----
+  load();
+  loadZonePref();
+  updateZoneButtons();
+  renderZonesInto(zonesLayer);
+  render();
+})();
+</script>
+<script>
+  // Installable app: offline support + one-tap install
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+    window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+  }
+</script>
+</body>
+</html>
