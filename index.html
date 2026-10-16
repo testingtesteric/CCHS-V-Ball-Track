@@ -38,6 +38,8 @@
     --receiveError: #1E4E8C;
     --serve: #A67C52;
     --serveError: #6B4F30;
+    --serveErrOut: #7A5230;
+    --serveErrNet: #3F2E1F;
     --ace: #B77FE0;
     --block: #E3A93F;
     --blockError: #8C5A2B;
@@ -201,6 +203,8 @@
   .legend-row{display:flex; align-items:center; justify-content:space-between; font-size:13.5px;}
   .legend-left{display:flex; align-items:center; gap:8px;}
   .swatch{width:12px;height:12px;border-radius:3px;}
+  .legend-group{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-top:6px; }
+  .legend-group:first-child{ margin-top:0; }
   .legend-count{color:var(--muted); font-variant-numeric: tabular-nums;}
 
   .pct-table{ width:100%; border-collapse:collapse; font-size:13.5px; }
@@ -235,6 +239,7 @@
   .shotlist button.del{
     border:none; background:transparent; color:var(--muted); padding:2px 6px; font-size:14px;
   }
+  .shotlist button.tagit{ background:#FFD23F; border-color:#FFD23F; color:#2A1D02; padding:3px 10px; font-size:12px; margin-left:auto; margin-right:4px; }
   .shotlist button.del:hover{color:var(--error); background:transparent;}
 
   .action-row{display:flex; gap:8px; flex-wrap:wrap;}
@@ -340,6 +345,21 @@
   #oppNameInput{ flex:1; }
   #oppGameInput{ width:52px; text-align:center; flex-shrink:0; }
 
+  .top-row{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:nowrap; max-width:100%; min-height:38px; }
+  .top-row .instruction{ min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .review-pill{ flex-shrink:0; white-space:nowrap; }
+  @media (max-width:880px){ .review-pill .long{ display:none; } .review-pill{ padding:7px 11px; font-size:12.5px; } }
+  .review-pill{
+    background:#FFD23F; border-color:#FFD23F; color:#2A1D02;
+    border-radius:20px; padding:8px 14px; font-size:13.5px; font-weight:700;
+    box-shadow:0 2px 10px rgba(255,210,63,0.35);
+  }
+  .review-pill:hover{ background:#ffdc66; }
+  .review-actions{ display:flex; gap:8px; margin-top:8px; }
+  .review-actions button{ flex:1; padding:11px; }
+  @keyframes reviewPulse{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
+  .review-ring{ animation: reviewPulse 1.1s ease-in-out infinite; }
+
   .court-end-label{
     font-size:13px; color:var(--muted); font-weight:600;
     letter-spacing:0.03em;
@@ -368,19 +388,42 @@
 
   /* Print styles */
   .print-only{ display:none; }
+  #printArea{ display:none; }
+  @page{ size: letter portrait; margin: 10mm; }
   @media print{
-    body *{ visibility:hidden; }
-    #printArea, #printArea *{ visibility:visible; }
+    html, body{ background:#fff !important; padding:0 !important; }
+    body > *:not(#printArea){ display:none !important; }
     #printArea{
-      position:absolute; top:0; left:0; width:100%;
       display:block !important;
-      background:white; color:#111;
-      padding: 10mm;
+      color:#111; font-family:'Inter', Arial, sans-serif;
+      -webkit-print-color-adjust:exact; print-color-adjust:exact;
     }
-    #printArea .print-court-frame{ background:var(--court) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    #printArea svg{ width: 100mm; height:auto; }
+    #printArea *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .print-only{ display:block; }
   }
+  .pr-head{ display:flex; align-items:baseline; justify-content:space-between; border-bottom:2px solid #111; padding-bottom:4px; margin-bottom:10px; }
+  .pr-head h2{ font-family:'Barlow Condensed', Arial Narrow, sans-serif; font-size:26px; margin:0; }
+  .pr-head .meta{ font-size:12px; color:#444; }
+  .pr-body{ display:flex; gap:9mm; align-items:flex-start; }
+  .pr-court{ flex:0 0 auto; background:#C08A4E; padding:7px; border-radius:8px; }
+  .pr-court .end{ text-align:center; font-weight:700; font-size:11px; color:#3a2a12; }
+  .pr-court svg{ display:block; width:96mm; height:auto; }
+  .pr-side{ flex:1; min-width:0; }
+  .pr-side h3{ font-family:'Barlow Condensed', Arial Narrow, sans-serif; font-size:17px; margin:0 0 4px; }
+  .pr-total{ font-size:12px; color:#444; margin-bottom:6px; }
+  .pr-total b{ font-family:'Barlow Condensed', Arial Narrow, sans-serif; font-size:26px; color:#111; margin-right:4px; }
+  .pr-table{ width:100%; border-collapse:collapse; font-size:11.5px; margin-bottom:12px; }
+  .pr-table th{ text-align:right; font-size:10.5px; color:#555; font-weight:700; padding:2px 4px; border-bottom:1.5px solid #111; }
+  .pr-table th:first-child{ text-align:left; }
+  .pr-table th:not(:first-child){ width:17%; }
+  .pr-table td{ text-align:right; padding:3px 4px; border-bottom:1px solid #ddd; font-variant-numeric:tabular-nums; }
+  .pr-table td:first-child{ text-align:left; }
+  .pr-table tr.zero td{ color:#aaa; }
+  .pr-table tr.grp td{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#555; padding-top:7px; border-bottom:1px solid #999; }
+  .pr-table tr.sum td{ font-weight:700; border-top:1.5px solid #111; border-bottom:none; }
+  .pr-sw{ display:inline-block; width:11px; height:11px; border-radius:2px; vertical-align:-1px; margin-right:6px; }
+  #printPct .pr-table th:not(:first-child){ width:26%; white-space:nowrap; }
+  .pr-key{ font-size:10.5px; color:#444; line-height:1.45; }
 </style>
 </head>
 <body>
@@ -404,9 +447,12 @@
   </header>
 
   <div class="court-wrap">
-    <div class="instruction step1" id="instruction">
-      <span class="dot"></span>
-      <span id="instructionText">Tap where the hit came from</span>
+    <div class="top-row">
+      <div class="instruction step1" id="instruction">
+        <span class="dot"></span>
+        <span id="instructionText">Tap where the hit came from</span>
+      </div>
+      <button id="reviewBtn" class="review-pill" style="display:none;"></button>
     </div>
 
     <div class="court-row">
@@ -474,17 +520,17 @@
     </div>
 
     <div id="pctBlockWrap">
-      <p class="section-title">Live percentages</p>
+      <p class="section-title">Live stats</p>
       <table class="pct-table">
-        <thead><tr><th></th><th>Home</th><th>Opp</th></tr></thead>
+        <thead><tr><th></th><th>This set</th><th id="matchHead">Match</th></tr></thead>
         <tbody>
-          <tr><td>Hitting</td><td id="pctHitHome">—</td><td id="pctHitOpp">—</td></tr>
-          <tr><td>Dig</td><td id="pctDigHome">—</td><td id="pctDigOpp">—</td></tr>
-          <tr><td>Serve recv</td><td id="pctRecvHome">—</td><td id="pctRecvOpp">—</td></tr>
-          <tr><td>Block</td><td id="pctBlockHome">—</td><td id="pctBlockOpp">—</td></tr>
+          <tr><td>Hitting</td><td id="stHitSet">—</td><td id="stHitMatch">—</td></tr>
+          <tr><td>Digs / set</td><td id="stDigSet">—</td><td id="stDigMatch">—</td></tr>
+          <tr><td>Blocks / set</td><td id="stBlkSet">—</td><td id="stBlkMatch">—</td></tr>
+          <tr><td>Serve recv %</td><td id="stRecvSet">—</td><td id="stRecvMatch">—</td></tr>
         </tbody>
       </table>
-      <p class="empty-note" style="margin-top:6px;">Hitting = (kills − hitting/net errors) ÷ total attacks (kills + attempts + errors). Dig / serve receive / block % are each just successes ÷ (successes + that skill's own errors).</p>
+      <p class="empty-note" style="margin-top:6px;">Hitting = (kills − hit/net errors) ÷ total attacks, shown like .275. Digs and blocks (block kills) are per set. "Match" adds up every set played vs this opponent on the same date.</p>
     </div>
 
     <div class="action-row">
@@ -537,25 +583,33 @@
 <!-- Classification bottom sheet -->
 <div class="sheet-backdrop floating" id="sheetBackdrop">
   <div class="sheet" id="classifySheet">
-    <h3>What was it?</h3>
+    <h3 id="sheetTitle">What was it?</h3>
     <p id="sheetHint">Optional — tag the shot or skip to just log the path.</p>
     <div class="chip-row" id="chipRow">
       <div class="chip" data-type="serve" style="border-color:var(--serve);">Serve</div>
-      <div class="chip" data-type="serveError" style="border-color:var(--serveError);">Serve error</div>
+      <div class="chip" data-type="serveErrOut" style="border-color:var(--serveErrOut);">Error out</div>
+      <div class="chip" data-type="serveErrNet" style="border-color:var(--serveErrNet);">Error net</div>
       <div class="chip" data-type="ace" style="border-color:var(--ace);">Ace</div>
       <div class="chip" data-type="oppServeError" style="border-color:var(--serveError);">Serve error</div>
       <div class="chip" data-type="receive" style="border-color:var(--receive);">Serve receive</div>
       <div class="chip" data-type="receiveError" style="border-color:var(--receiveError);">Receive error</div>
       <div class="chip" data-type="dig" style="border-color:var(--dig);">Dig</div>
       <div class="chip" data-type="digError" style="border-color:var(--digError);">Dig error</div>
-      <div class="chip" data-type="block" style="border-color:var(--block);">Block</div>
+      <div class="chip" data-type="blockKill" style="border-color:#F0B429;">Block kill</div>
+      <div class="chip" data-type="ufError" style="border-color:#7D6B91;">UF error</div>
+      <div class="chip" data-type="op" style="border-color:#C9B458;">OP</div>
+      <div class="chip" data-type="oppOverpass" style="border-color:#C9B458;">OP</div>
       <div class="chip" data-type="blockError" style="border-color:var(--blockError);">Block error</div>
       <div class="chip" data-type="tipAttempt" style="border-color:var(--tipAttempt);">Tip attempt</div>
       <div class="chip" data-type="killAttempt" style="border-color:var(--killAttempt);">Kill attempt</div>
       <div class="chip" data-type="kill" style="border-color:var(--kill);">Kill</div>
-      <div class="chip" data-type="hitError" style="border-color:var(--hitError);">Hitting / net error</div>
+      <div class="chip" data-type="hitError" style="border-color:var(--hitError);">Hit/net error</div>
     </div>
     <button id="skipTagBtn" class="ghost" style="width:100%;">Skip tagging</button>
+    <div class="review-actions" id="reviewActions" style="display:none;">
+      <button id="reviewDeleteBtn" class="ghost danger">Delete play</button>
+      <button id="reviewDoneBtn" class="ghost">Done</button>
+    </div>
   </div>
 </div>
 
@@ -594,42 +648,64 @@
 <div class="toast" id="toast"></div>
 
 <!-- Print-only render target -->
-<div id="printArea" style="display:none;">
-  <h2 id="printTitle" style="font-family:'Barlow Condensed',sans-serif; margin-bottom:2px;"></h2>
-  <p id="printMeta" style="color:#555; margin-top:0; font-size:13px;"></p>
-  <div class="print-court-frame" style="display:inline-block; padding:10px; border-radius:8px;">
-    <div style="text-align:center; font-weight:600; font-size:12px; color:#3a2a12; margin-bottom:4px;">Opponent's court</div>
-    <svg id="printSvg" viewBox="0 0 360 760" xmlns="http://www.w3.org/2000/svg"></svg>
-    <div style="text-align:center; font-weight:600; font-size:12px; color:#3a2a12; margin-top:4px;">Home court</div>
+<div id="printArea">
+  <div class="pr-head">
+    <h2 id="printTitle"></h2>
+    <span class="meta" id="printMeta"></span>
   </div>
-  <div id="printStats" style="margin-top:14px; font-size:13px;"></div>
-  <div id="printPct" style="margin-top:12px; font-size:13px;"></div>
+  <div class="pr-body">
+    <div class="pr-court">
+      <div class="end" style="margin-bottom:3px;">Opponent's court</div>
+      <svg id="printSvg" viewBox="0 0 360 760" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="end" style="margin-top:3px;">Home court</div>
+    </div>
+    <div class="pr-side">
+      <h3>Shots recorded</h3>
+      <div id="printStats"></div>
+      <h3>Stats</h3>
+      <div id="printPct"></div>
+      <p class="pr-key">Colors show the type of play. Home plays print bold with a teal ring on the starting dot; opponent plays print faded and thinner.</p>
+    </div>
+  </div>
 </div>
 
 <script>
 (function(){
   const STORAGE_KEY = 'rallyChart.games.v1';
+  // group: 'home' = starts on our side, 'opp' = starts on the opponent's side (labeled "Opp-"),
+  // 'legacy' = no longer offered, only listed when an older game used it.
+  // Order here is the order the "Shots recorded" list and printout use.
   const TYPE_META = {
-    // Active tags — offered in the classify sheet, split by which side the play started on.
-    kill:         { label:'Kill',               hex:'#E0473F' },
-    killAttempt:  { label:'Kill attempt',       hex:'#E8897C' },
-    tipAttempt:   { label:'Tip attempt',        hex:'#E056A0' },
-    dig:          { label:'Dig',                hex:'#43B872' },
-    digError:     { label:'Dig error',          hex:'#2F6B45' },
-    receive:      { label:'Serve receive',      hex:'#3B82F6' },
-    receiveError: { label:'Serve receive error',hex:'#1E4E8C' },
-    serve:        { label:'Serve',              hex:'#A67C52' },
-    serveError:   { label:'Serve error',        hex:'#6B4F30' },
-    ace:          { label:'Ace',                hex:'#B77FE0' },
-    block:        { label:'Block',              hex:'#E3A93F' },
-    blockError:   { label:'Block error',        hex:'#8C5A2B' },
-    hitError:     { label:'Hitting / net error',hex:'#6E1423' },
-    oppServeError:{ label:'Opp serve error',    hex:'#6B4F30' },
-    // Legacy tags — no longer offered as chips, kept so any previously logged shots still render correctly.
-    tip:          { label:'Tip',                hex:'#E056A0' },
-    error:        { label:'Error / out',        hex:'#9B3948' },
-    none:         { label:'Untagged',           hex:'#8A96A6' },
+    serve:        { label:'Serve',              hex:'#A67C52', group:'home' },
+    ace:          { label:'Ace',                hex:'#B77FE0', group:'home' },
+    serveErrOut:  { label:'Serve error (out)',  hex:'#7A5230', group:'home' },
+    serveErrNet:  { label:'Serve error (net)',  hex:'#3F2E1F', group:'home' },
+    killAttempt:  { label:'Kill attempt',       hex:'#E8897C', group:'home' },
+    tipAttempt:   { label:'Tip attempt',        hex:'#E056A0', group:'home' },
+    op:           { label:'OP',                 hex:'#C9B458', group:'home' },
+    kill:         { label:'Kill',               hex:'#E0473F', group:'home' },
+    hitError:     { label:'Hit/net error',      hex:'#6E1423', group:'home' },
+    receive:      { label:'Serve receive',      hex:'#3B82F6', group:'home' },
+    receiveError: { label:'Receive error',      hex:'#1E4E8C', group:'home' },
+    blockKill:    { label:'Block kill',         hex:'#F0B429', group:'home' },
+    dig:          { label:'Dig',                hex:'#43B872', group:'home' },
+    digError:     { label:'Dig error',          hex:'#2F6B45', group:'home' },
+    blockError:   { label:'Block error',        hex:'#8C5A2B', group:'home' },
+    oppServeError:{ label:'Opp-Serve error',    hex:'#6B4F30', group:'opp' },
+    ufError:      { label:'Opp-UF error',       hex:'#7D6B91', group:'opp' },
+    oppOverpass:  { label:'Opp-OP',             hex:'#C9B458', group:'opp' },
+    // Older tags, kept so previously logged games still render and count.
+    block:        { label:'Block',               hex:'#E3A93F', group:'legacy' },
+    serveError:   { label:'Serve error',        hex:'#6B4F30', group:'legacy' },
+    tip:          { label:'Tip',                hex:'#E056A0', group:'legacy' },
+    error:        { label:'Error / out',        hex:'#9B3948', group:'legacy' },
+    none:         { label:'Untagged',           hex:'#8A96A6', group:'other' },
   };
+  const GROUP_TITLES = { home:'Our team', opp:'Opponent', legacy:'Older tags', other:'Other' };
+  // Rows to list: every active type, plus older tags only when this game has them.
+  function listedTypes(counts){
+    return Object.keys(TYPE_META).filter(t=> TYPE_META[t].group !== 'legacy' || counts[t]);
+  }
 
   const ZONE_PREF_KEY = 'rallyChart.zonePref.v1';
   const ZONE_LAYOUTS = {
@@ -819,10 +895,10 @@
   //   their side, mid-court -> how we defended it (dig / block)
   const SERVE_BAND = 60; // depth of the serve strip inside each end line, in court units (~1.5 m)
   const TAG_CONTEXTS = {
-    homeServe: ['serve','serveError','ace'],
-    oppServe:  ['oppServeError','receive','receiveError'],
-    homeRally: ['tipAttempt','killAttempt','kill','hitError','blockError'],
-    oppRally:  ['dig','digError','block','blockError'],
+    homeServe: ['serve','ace','serveErrOut','serveErrNet'],
+    oppServe:  ['receive','receiveError','oppServeError'],
+    homeRally: ['killAttempt','tipAttempt','op','kill','hitError'],
+    oppRally:  ['blockKill','dig','digError','ufError','blockError','oppOverpass'],
   };
   const CONTEXT_HINTS = {
     homeServe: 'Our serve — how did it go?',
@@ -835,8 +911,8 @@
     if(from.y <= 20 + SERVE_BAND) return 'oppServe';
     return from.y >= 380 ? 'homeRally' : 'oppRally';
   }
-  function openClassifySheet(){
-    const ctx = contextFor(pending.from);
+  function openClassifySheet(fromPt, hintPrefix){
+    const ctx = contextFor(fromPt || pending.from);
     const row = document.getElementById('chipRow');
     row.querySelectorAll('.chip').forEach(chip=>{ chip.style.display = 'none'; });
     TAG_CONTEXTS[ctx].forEach(type=>{
@@ -845,6 +921,9 @@
       row.appendChild(chip); // keep the context's own order so pairs line up
     });
     document.getElementById('sheetHint').textContent = CONTEXT_HINTS[ctx];
+    document.getElementById('sheetTitle').textContent = hintPrefix || 'What was it?';
+    document.getElementById('skipTagBtn').textContent = review ? 'Skip for now' : 'Skip tagging';
+    document.getElementById('reviewActions').style.display = review ? 'flex' : 'none';
     sheetBackdrop.classList.add('show');
     positionClassifySheet();
     sheetOpenedAt = Date.now();
@@ -882,7 +961,7 @@
 
   sheetBackdrop.addEventListener('click', (e)=>{
     if(sheetJustOpened()) return;
-    if(e.target === sheetBackdrop){ finalizeShot('none'); }
+    if(e.target === sheetBackdrop){ if(review) endReview(); else finalizeShot('none'); }
   });
   document.getElementById('skipTagBtn').addEventListener('click', ()=>{
     if(sheetJustOpened()) return;
@@ -896,6 +975,7 @@
   });
 
   function finalizeShot(type){
+    if(review){ resolveReviewShot(type); return; }
     if(pending && pending.from && pending.to){
       const game = currentGame();
       game.shots.push({
@@ -912,9 +992,59 @@
     resetPending();
   }
 
+  // ---- review untagged plays ----
+  // Steps through every untagged play in order: highlights it on the court and opens the
+  // tag popup with the options for where that play started.
+  let review = null; // { ids: [...untagged shot ids], i: current position }
+  function untaggedIds(){ return currentGame().shots.filter(sh=> sh.type === 'none').map(sh=> sh.id); }
+  function startReview(startId){
+    const ids = untaggedIds();
+    if(!ids.length) return;
+    if(sheetBackdrop.classList.contains('show')) closeClassifySheet();
+    resetPending();
+    review = { ids, i: Math.max(0, ids.indexOf(startId)) };
+    showReviewItem();
+  }
+  function showReviewItem(){
+    const game = currentGame();
+    while(review.i < review.ids.length){
+      const sh = game.shots.find(x=> x.id === review.ids[review.i]);
+      if(sh && sh.type === 'none') break;
+      review.i++;
+    }
+    if(review.i >= review.ids.length){ endReview(); return; }
+    const sh = game.shots.find(x=> x.id === review.ids[review.i]);
+    render();
+    openClassifySheet(sh.from, 'Untagged ' + (review.i + 1) + ' of ' + review.ids.length);
+  }
+  function resolveReviewShot(type){
+    const sh = currentGame().shots.find(x=> x.id === review.ids[review.i]);
+    if(sh && type !== 'none'){ sh.type = type; persist(); }
+    review.i++;
+    showReviewItem();
+  }
+  function endReview(){
+    review = null;
+    closeClassifySheet();
+    render();
+    const left = untaggedIds().length;
+    showToast(left ? left + ' play' + (left === 1 ? '' : 's') + ' still untagged' : 'All plays tagged');
+  }
+  document.getElementById('reviewBtn').addEventListener('click', ()=> startReview());
+  document.getElementById('reviewDoneBtn').addEventListener('click', ()=>{ if(!sheetJustOpened()) endReview(); });
+  document.getElementById('reviewDeleteBtn').addEventListener('click', ()=>{
+    if(sheetJustOpened() || !review) return;
+    const game = currentGame();
+    game.shots = game.shots.filter(x=> x.id !== review.ids[review.i]);
+    persist();
+    review.i++;
+    showReviewItem();
+  });
+
   // ---- undo (button + Ctrl/Cmd+Z) ----
   // Cascades: cancel an open tag sheet, then an in-progress first tap, then the last saved shot.
   function handleUndo(){
+    if(review){ endReview(); return; }
     if(sheetBackdrop.classList.contains('show')){
       closeClassifySheet();
       resetPending();
@@ -947,9 +1077,9 @@
   // tags always count as "home" for stats and styling, even when the play started on the opponent's
   // side (e.g. a Dig, tapped from where their attack came from). Legacy tags (from before this change)
   // still fall back to geometric origin — top half (y < net) is the opponent's court.
-  const HOME_TAG_TYPES = new Set(['dig','digError','receive','receiveError','block','blockError','serve','serveError','ace','tipAttempt','killAttempt','kill','hitError']);
+  const HOME_TAG_TYPES = new Set(['dig','digError','receive','receiveError','block','blockError','serve','serveError','serveErrOut','serveErrNet','ace','tipAttempt','op','blockKill','killAttempt','kill','hitError']);
   function teamOf(shot){
-    if(shot.type === 'oppServeError') return 'opponent';
+    if(shot.type === 'oppServeError' || shot.type === 'ufError' || shot.type === 'oppOverpass') return 'opponent';
     if(HOME_TAG_TYPES.has(shot.type)) return 'home';
     return shot.from.y < 380 ? 'opponent' : 'home';
   }
@@ -995,7 +1125,7 @@
       return denom ? recv / denom : null;
     }
     function blockPct(c){
-      const b = c.block||0, be = c.blockError||0;
+      const b = (c.block||0) + (c.blockKill||0), be = c.blockError||0;
       const denom = b + be;
       return denom ? b / denom : null;
     }
@@ -1007,10 +1137,55 @@
   }
   function fmtPct(v){ return v === null ? '—' : Math.round(v * 100) + '%'; }
 
+  // ---- volleyball-style stats ----
+  // Hitting efficiency: (K - E) / TA, shown the way stat sheets print it (.275, -.050, 1.000).
+  // Digs and blocks: totals per set. A "set" is one game in this app; the match is every game
+  // vs the same opponent on the same date. Serve receive stays a success % for now.
+  function homeCounts(shots){
+    const c = {};
+    shots.forEach(sh=>{ if(teamOf(sh) === 'home') c[sh.type] = (c[sh.type] || 0) + 1; });
+    return c;
+  }
+  function rawStats(shots){
+    const c = homeCounts(shots);
+    const k = c.kill || 0, e = (c.hitError || 0) + (c.error || 0);
+    const ta = k + e + (c.killAttempt || 0) + (c.tipAttempt || 0);
+    return {
+      k, e, ta,
+      digs: c.dig || 0,
+      blocks: (c.blockKill || 0) + (c.block || 0),
+      recv: c.receive || 0, recvErr: c.receiveError || 0,
+    };
+  }
+  function matchGames(game){
+    const key = g=> (g.opponent || '').trim().toLowerCase() + '|' + g.date;
+    return state.games.filter(g=> g.id === game.id || (key(g) === key(game) && g.shots.length));
+  }
+  function computeStats(game){
+    const one = rawStats(game.shots);
+    const games = matchGames(game);
+    const all = rawStats([].concat(...games.map(g=> g.shots)));
+    const sets = games.length;
+    const hit = r=> r.ta ? (r.k - r.e) / r.ta : null;
+    const recv = r=> (r.recv + r.recvErr) ? r.recv / (r.recv + r.recvErr) : null;
+    return {
+      sets,
+      set:   { hit: hit(one), digs: one.digs, blocks: one.blocks, recv: recv(one), ta: one.ta },
+      match: { hit: hit(all), digs: all.digs / sets, blocks: all.blocks / sets, recv: recv(all), ta: all.ta,
+               totalDigs: all.digs, totalBlocks: all.blocks },
+    };
+  }
+  function fmtHit(v){
+    if(v === null) return '—';
+    const t = Math.abs(v).toFixed(3);
+    return (v < 0 ? '-' : '') + (t.startsWith('0') ? t.slice(1) : t);
+  }
+  function fmtPerSet(v){ return (Math.round(v * 10) / 10).toFixed(1); }
+
   // ---- rendering ----
   function shotColor(type){ return (TYPE_META[type] || TYPE_META.none).hex; }
 
-  function renderShotsInto(layerEl, shots){
+  function renderShotsInto(layerEl, shots, focusId){
     layerEl.innerHTML = '';
     shots.forEach((s, i)=>{
       const col = shotColor(s.type);
@@ -1021,6 +1196,11 @@
       const dotOpacity = isHome ? 1 : 0.45;
       const originStrokeOpacity = isHome ? 1 : 0.5;
       const ns = 'http://www.w3.org/2000/svg';
+      const g = document.createElementNS(ns,'g');
+      if(focusId){
+        // reviewing: the play being tagged stays bright, other untagged plays stay visible, the rest fade back
+        if(s.id !== focusId) g.setAttribute('opacity', s.type === 'none' ? '0.55' : '0.12');
+      }
 
       const line = document.createElementNS(ns,'line');
       line.setAttribute('x1', s.from.x); line.setAttribute('y1', s.from.y);
@@ -1028,7 +1208,7 @@
       line.setAttribute('stroke', col); line.setAttribute('stroke-width', lineWidth);
       line.setAttribute('stroke-opacity', lineOpacity);
       line.setAttribute('marker-end', 'url(#arrowhead-'+s.type+'-'+team+')');
-      layerEl.appendChild(line);
+      g.appendChild(line);
 
       const origin = document.createElementNS(ns,'circle');
       origin.setAttribute('cx', s.from.x); origin.setAttribute('cy', s.from.y);
@@ -1044,9 +1224,9 @@
         halo.setAttribute('fill', 'none');
         halo.setAttribute('stroke', '#2C97A0');
         halo.setAttribute('stroke-width', 2.5);
-        layerEl.appendChild(halo);
+        g.appendChild(halo);
       }
-      layerEl.appendChild(origin);
+      g.appendChild(origin);
 
       const land = document.createElementNS(ns,'circle');
       land.setAttribute('cx', s.to.x); land.setAttribute('cy', s.to.y);
@@ -1054,8 +1234,21 @@
       land.setAttribute('fill-opacity', dotOpacity);
       land.setAttribute('stroke', '#12161c'); land.setAttribute('stroke-width', 1);
       land.setAttribute('stroke-opacity', isHome ? 1 : 0.5);
-      layerEl.appendChild(land);
+      g.appendChild(land);
+      layerEl.appendChild(g);
     });
+    // a pulsing yellow ring on both ends of the play being reviewed
+    const f = focusId && shots.find(x=> x.id === focusId);
+    if(f){
+      const ns = 'http://www.w3.org/2000/svg';
+      [f.from, f.to].forEach(pt=>{
+        const ring = document.createElementNS(ns,'circle');
+        ring.setAttribute('cx', pt.x); ring.setAttribute('cy', pt.y); ring.setAttribute('r', 16);
+        ring.setAttribute('fill', 'rgba(255,210,63,0.18)'); ring.setAttribute('stroke', '#FFD23F'); ring.setAttribute('stroke-width', 3.5);
+        ring.setAttribute('class', 'review-ring'); ring.setAttribute('pointer-events', 'none');
+        layerEl.appendChild(ring);
+      });
+    }
   }
 
   function ensureArrowDefs(targetSvg){
@@ -1101,7 +1294,7 @@
     if(document.activeElement !== oppGameInput) oppGameInput.value = game.gameNumber;
 
     // court shots
-    renderShotsInto(shotsLayer, game.shots);
+    renderShotsInto(shotsLayer, game.shots, review ? review.ids[review.i] : null);
 
     // stats
     statTotal.textContent = game.shots.length;
@@ -1109,23 +1302,29 @@
     Object.keys(TYPE_META).forEach(t=> counts[t]=0);
     game.shots.forEach(s=> counts[s.type] = (counts[s.type]||0)+1 );
     legendEl.innerHTML = '';
-    Object.keys(TYPE_META).forEach(t=>{
+    let lastGroup = null;
+    listedTypes(counts).forEach(t=>{
+      const g = TYPE_META[t].group;
+      if(g !== lastGroup){
+        lastGroup = g;
+        const h = document.createElement('div');
+        h.className = 'legend-group'; h.textContent = GROUP_TITLES[g];
+        legendEl.appendChild(h);
+      }
       const row = document.createElement('div');
       row.className='legend-row';
       row.innerHTML = `<div class="legend-left"><span class="swatch" style="background:${TYPE_META[t].hex}"></span>${TYPE_META[t].label}</div><span class="legend-count">${counts[t]}</span>`;
       legendEl.appendChild(row);
     });
 
-    // live percentages
-    const pct = computePercentages(teamTypeCounts(game.shots));
-    document.getElementById('pctHitHome').textContent = fmtPct(pct.home.hit);
-    document.getElementById('pctHitOpp').textContent = fmtPct(pct.opponent.hit);
-    document.getElementById('pctDigHome').textContent = fmtPct(pct.home.dig);
-    document.getElementById('pctDigOpp').textContent = fmtPct(pct.opponent.dig);
-    document.getElementById('pctRecvHome').textContent = fmtPct(pct.home.recv);
-    document.getElementById('pctRecvOpp').textContent = fmtPct(pct.opponent.recv);
-    document.getElementById('pctBlockHome').textContent = fmtPct(pct.home.block);
-    document.getElementById('pctBlockOpp').textContent = fmtPct(pct.opponent.block);
+    // live stats
+    const st = computeStats(game);
+    const setText = (id, v)=>{ document.getElementById(id).textContent = v; };
+    setText('stHitSet', fmtHit(st.set.hit));       setText('stHitMatch', fmtHit(st.match.hit));
+    setText('stDigSet', fmtPerSet(st.set.digs));   setText('stDigMatch', fmtPerSet(st.match.digs));
+    setText('stBlkSet', fmtPerSet(st.set.blocks)); setText('stBlkMatch', fmtPerSet(st.match.blocks));
+    setText('stRecvSet', fmtPct(st.set.recv));     setText('stRecvMatch', fmtPct(st.match.recv));
+    setText('matchHead', 'Match (' + st.sets + ' set' + (st.sets === 1 ? '' : 's') + ')');
 
     // shot list
     shotListEl.innerHTML = '';
@@ -1136,8 +1335,11 @@
       const li = document.createElement('li');
       const teamMark = isHome ? '<span title="Your side" style="color:#2C97A0; font-weight:700; margin-right:2px;">●</span>' : '<span title="Opponent" style="color:var(--muted); margin-right:2px;">○</span>';
       const tagStyle = 'background:' + shotColor(s.type) + '; opacity:' + (isHome ? '1' : '0.55') + ';';
-      li.innerHTML = `<div class="left">${teamMark}<span class="idx">${idx}</span><span class="tag" style="${tagStyle}">${TYPE_META[s.type].label}</span></div><button class="del" data-id="${s.id}" title="Delete">✕</button>`;
+      li.innerHTML = `<div class="left">${teamMark}<span class="idx">${idx}</span><span class="tag" style="${tagStyle}">${TYPE_META[s.type].label}</span></div>${s.type === 'none' ? `<button class="tagit" data-id="${s.id}">Tag</button>` : ''}<button class="del" data-id="${s.id}" title="Delete">✕</button>`;
       shotListEl.appendChild(li);
+    });
+    shotListEl.querySelectorAll('.tagit').forEach(btn=>{
+      btn.addEventListener('click', ()=> startReview(btn.dataset.id));
     });
     shotListEl.querySelectorAll('.del').forEach(btn=>{
       btn.addEventListener('click', ()=>{
@@ -1148,6 +1350,11 @@
     });
 
     document.getElementById('clearBtn').disabled = game.shots.length === 0;
+
+    const untaggedCount = game.shots.filter(sh=> sh.type === 'none').length;
+    const reviewBtn = document.getElementById('reviewBtn');
+    reviewBtn.style.display = untaggedCount && !review ? '' : 'none';
+    reviewBtn.innerHTML = '⚠ ' + untaggedCount + ' untagged<span class="long"> · Review</span>';
   }
 
   // ---- custom confirm / toast (native confirm/alert can be blocked inside a sandboxed artifact frame) ----
@@ -1342,7 +1549,7 @@
   document.getElementById('printBtn').addEventListener('click', ()=>{
     const game = currentGame();
     document.getElementById('printTitle').textContent = 'vs ' + game.opponent + ' — Game ' + game.gameNumber;
-    document.getElementById('printMeta').textContent = game.date + '  ·  ' + game.shots.length + ' shots recorded';
+    document.getElementById('printMeta').textContent = game.date;
 
     const printSvg = document.getElementById('printSvg');
     printSvg.innerHTML = svg.querySelector('#courtLines').outerHTML;
@@ -1361,26 +1568,27 @@
     renderShotsInto(layer, game.shots);
 
     const counts = {};
-    Object.keys(TYPE_META).forEach(t=> counts[t]=0);
-    game.shots.forEach(s=> counts[s.type] = (counts[s.type]||0)+1 );
-    const statsEl = document.getElementById('printStats');
-    statsEl.innerHTML = Object.keys(TYPE_META).map(t=>
-      `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:16px;">
-        <span style="width:10px;height:10px;background:${TYPE_META[t].hex};display:inline-block;border-radius:2px;"></span>
-        ${TYPE_META[t].label}: ${counts[t]}
-      </span>`
-    ).join('');
+    game.shots.forEach(sh=> counts[sh.type] = (counts[sh.type]||0) + 1);
+    let lastGroup = null;
+    const rows = listedTypes(counts).map(t=>{
+      const n = counts[t] || 0, g = TYPE_META[t].group;
+      let head = '';
+      if(g !== lastGroup){ lastGroup = g; head = '<tr class="grp"><td colspan="2">' + GROUP_TITLES[g] + '</td></tr>'; }
+      return head + '<tr class="' + (n ? '' : 'zero') + '"><td><span class="pr-sw" style="background:' + TYPE_META[t].hex + '"></span>' +
+        TYPE_META[t].label + '</td><td>' + n + '</td></tr>';
+    }).join('');
+    document.getElementById('printStats').innerHTML =
+      '<div class="pr-total"><b>' + game.shots.length + '</b>shots recorded</div>' +
+      '<table class="pr-table"><thead><tr><th></th><th>Count</th></tr></thead><tbody>' + rows + '</tbody></table>';
 
-    const pct = computePercentages(teamTypeCounts(game.shots));
+    const st = computeStats(game);
     const pctEl = document.getElementById('printPct');
-    pctEl.innerHTML =
-      '<table style="border-collapse:collapse;">' +
-      '<tr><th style="text-align:left; padding:3px 12px 3px 0;"></th><th style="text-align:right; padding:3px 12px;">Home</th><th style="text-align:right; padding:3px 0;">Opponent</th></tr>' +
-      '<tr><td style="padding:3px 12px 3px 0;">Hitting</td><td style="text-align:right; padding:3px 12px;">' + fmtPct(pct.home.hit) + '</td><td style="text-align:right; padding:3px 0;">' + fmtPct(pct.opponent.hit) + '</td></tr>' +
-      '<tr><td style="padding:3px 12px 3px 0;">Dig</td><td style="text-align:right; padding:3px 12px;">' + fmtPct(pct.home.dig) + '</td><td style="text-align:right; padding:3px 0;">' + fmtPct(pct.opponent.dig) + '</td></tr>' +
-      '<tr><td style="padding:3px 12px 3px 0;">Serve receive</td><td style="text-align:right; padding:3px 12px;">' + fmtPct(pct.home.recv) + '</td><td style="text-align:right; padding:3px 0;">' + fmtPct(pct.opponent.recv) + '</td></tr>' +
-      '<tr><td style="padding:3px 12px 3px 0;">Block</td><td style="text-align:right; padding:3px 12px;">' + fmtPct(pct.home.block) + '</td><td style="text-align:right; padding:3px 0;">' + fmtPct(pct.opponent.block) + '</td></tr>' +
-      '</table>';
+    const pr = (label, a, b)=> '<tr><td>' + label + '</td><td>' + a + '</td><td>' + b + '</td></tr>';
+    pctEl.innerHTML = '<table class="pr-table"><thead><tr><th></th><th>This set</th><th>Match (' + st.sets + ')</th></tr></thead><tbody>' +
+      pr('Hitting', fmtHit(st.set.hit), fmtHit(st.match.hit)) +
+      pr('Digs / set', fmtPerSet(st.set.digs), fmtPerSet(st.match.digs)) +
+      pr('Blocks / set', fmtPerSet(st.set.blocks), fmtPerSet(st.match.blocks)) +
+      pr('Serve receive %', fmtPct(st.set.recv), fmtPct(st.match.recv)) + '</tbody></table>';
 
     window.print();
   });
@@ -1406,13 +1614,13 @@
       const z = zoneOf(s.to);
       zoneCounts[z] = (zoneCounts[z] || 0) + 1;
     });
-    const pct = computePercentages(counts);
+    const st = computeStats(game);
     return {
       opponent: game.opponent, gameNumber: game.gameNumber, totalShots: game.shots.length,
       byTeamType: counts, zoneCounts,
-      percentages: {
-        home: { hitting: pct.home.hit, dig: pct.home.dig, serveReceive: pct.home.recv, block: pct.home.block },
-        opponent: { hitting: pct.opponent.hit, dig: pct.opponent.dig, serveReceive: pct.opponent.recv, block: pct.opponent.block }
+      homeStats: {
+        thisSet: { hittingEfficiency: fmtHit(st.set.hit), digs: st.set.digs, blocks: st.set.blocks, serveReceivePct: fmtPct(st.set.recv) },
+        match: { sets: st.sets, hittingEfficiency: fmtHit(st.match.hit), digsPerSet: fmtPerSet(st.match.digs), blocksPerSet: fmtPerSet(st.match.blocks), serveReceivePct: fmtPct(st.match.recv) }
       }
     };
   }
@@ -1424,9 +1632,10 @@
       const t = summary.byTeamType[team] || {};
       const parts = Object.keys(t).map(k => (TYPE_META[k] ? TYPE_META[k].label : k) + ': ' + t[k]);
       lines.push((team === 'home' ? 'Home' : 'Opponent') + ' — ' + (parts.join(', ') || 'no shots logged'));
-      const p = summary.percentages[team];
-      lines.push('  Hitting ' + fmtPct(p.hitting) + ' · Dig ' + fmtPct(p.dig) + ' · Serve recv ' + fmtPct(p.serveReceive) + ' · Block ' + fmtPct(p.block));
     });
+    const h = summary.homeStats;
+    lines.push('This set — Hitting ' + h.thisSet.hittingEfficiency + ' · Digs ' + h.thisSet.digs + ' · Blocks ' + h.thisSet.blocks + ' · Serve recv ' + h.thisSet.serveReceivePct);
+    lines.push('Match (' + h.match.sets + ' sets) — Hitting ' + h.match.hittingEfficiency + ' · Digs/set ' + h.match.digsPerSet + ' · Blocks/set ' + h.match.blocksPerSet + ' · Serve recv ' + h.match.serveReceivePct);
     const topZone = Object.entries(summary.zoneCounts).sort((a,b)=> b[1]-a[1])[0];
     if(topZone){
       lines.push('Most active landing area: ' + topZone[0] + ' (' + topZone[1] + ' shots)');
@@ -1474,9 +1683,9 @@
       if(sample){
         const prompt = 'You are a volleyball assistant coach helping the HOME team review a match. ' +
           'The court is a 3x2 grid on each side (left/middle/right, front/back); "opponent" is the far court, "home" is the near court. ' +
-          "Here is this game's logged play data as JSON, including precomputed hitting/dig/serve-receive percentages per team: " + JSON.stringify(summary) + '. ' +
+          "Here is this set's logged play data as JSON, including the home team's hitting efficiency (volleyball format, e.g. .275), digs per set, blocks per set and serve receive %, for this set and the match so far: " + JSON.stringify(summary) + '. ' +
           'Give 3 to 5 short, specific, actionable recommendations for the home team to adjust — serve receive positioning, defensive coverage, attack shot selection, or error reduction. ' +
-          "Reference the actual percentages, zones, and counts from the data (e.g. cite the home team's hitting or dig percentage where relevant). " +
+          "Reference the actual numbers, zones, and counts from the data (e.g. cite hitting efficiency like .275 or digs per set where relevant). " +
           'Keep it under 150 words, plain text, a dash before each point, no headers or markdown.';
         const res = await sample(prompt, { modelTier: 'quick' });
         if(res && res.text) text = res.text.trim();

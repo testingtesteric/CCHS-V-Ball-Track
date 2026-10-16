@@ -1,6 +1,6 @@
 // Rally Chart offline support.
 // Bump VERSION whenever you upload a new index.html so phones pick up the update.
-const VERSION = 'rally-chart-v1';
+const VERSION = 'rally-chart-v8';
 const CORE = [
   './',
   './index.html',
