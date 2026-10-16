@@ -120,6 +120,7 @@
   button.danger{color:var(--error); border-color:var(--error);}
   button.danger:hover{background: rgba(224,97,90,0.12);}
   button:disabled{opacity:.4; cursor:not-allowed;}
+  .zone-formation, .zone-toggle{ white-space:nowrap; padding-left:6px; padding-right:6px; }
   .zone-toggle.active, .zone-formation.active{
     background:var(--teal); border-color:var(--teal); color:#08181A;
   }
@@ -188,11 +189,12 @@
     display:flex;
     flex-direction:column;
     gap: 18px;
-    max-height: calc(100vh - 0px);
+    position: sticky; top:0; align-self:start;
+    max-height: 100vh;
     overflow-y:auto;
   }
   @media (max-width:880px){
-    .sidebar{border-left:none; border-top:1px solid var(--line);}
+    .sidebar{border-left:none; border-top:1px solid var(--line); position:static; max-height:none; overflow:visible;}
   }
 
   .section-title{
@@ -211,6 +213,9 @@
   .pct-table th{ color:var(--muted); font-weight:600; text-align:right; padding:4px 4px; font-size:12px; }
   .pct-table th:first-child{ text-align:left; }
   .pct-table td{ padding:5px 4px; text-align:right; font-variant-numeric: tabular-nums; border-top:1px solid var(--line); }
+  .pct-table tr.sub td{ border-top:none; padding-top:2px; padding-bottom:2px; font-size:12.5px; }
+  .pct-table tr.sub td:first-child{ padding-left:14px; }
+  .pct-table tr.sub td:first-child::before{ content:'↳ '; opacity:.6; }
   .pct-table td:first-child{ text-align:left; color:var(--muted); }
 
   .stat-total{
@@ -423,6 +428,9 @@
   .pr-table tr.sum td{ font-weight:700; border-top:1.5px solid #111; border-bottom:none; }
   .pr-sw{ display:inline-block; width:11px; height:11px; border-radius:2px; vertical-align:-1px; margin-right:6px; }
   #printPct .pr-table th:not(:first-child){ width:26%; white-space:nowrap; }
+  .pr-table tr.sub td{ border-bottom:1px dotted #ddd; padding-top:2px; padding-bottom:2px; }
+  .pr-table tr.sub td:first-child{ padding-left:14px; }
+  .pr-table .kta{ color:#777; font-size:10px; margin-left:4px; }
   .pr-key{ font-size:10.5px; color:#444; line-height:1.45; }
 </style>
 </head>
@@ -511,30 +519,10 @@
 
   <aside class="sidebar">
     <div>
-      <div class="stat-total">
-        <span class="num" id="statTotal">0</span>
-        <span class="label">shots recorded</span>
+      <p class="section-title">Game tools</p>
+      <div class="action-row">
+        <button id="clearBtn" class="danger ghost">Clear game</button>
       </div>
-      <div class="legend" id="legend"></div>
-      <p class="empty-note" style="margin-top:8px;">The teal half of the court is your side. Your plays render bright and bold with a teal ring on the starting dot; opponent plays render faded and thinner — same colors by type, just dimmed for theirs.</p>
-    </div>
-
-    <div id="pctBlockWrap">
-      <p class="section-title">Live stats</p>
-      <table class="pct-table">
-        <thead><tr><th></th><th>This set</th><th id="matchHead">Match</th></tr></thead>
-        <tbody>
-          <tr><td>Hitting</td><td id="stHitSet">—</td><td id="stHitMatch">—</td></tr>
-          <tr><td>Digs / set</td><td id="stDigSet">—</td><td id="stDigMatch">—</td></tr>
-          <tr><td>Blocks / set</td><td id="stBlkSet">—</td><td id="stBlkMatch">—</td></tr>
-          <tr><td>Serve recv %</td><td id="stRecvSet">—</td><td id="stRecvMatch">—</td></tr>
-        </tbody>
-      </table>
-      <p class="empty-note" style="margin-top:6px;">Hitting = (kills − hit/net errors) ÷ total attacks, shown like .275. Digs and blocks (block kills) are per set. "Match" adds up every set played vs this opponent on the same date.</p>
-    </div>
-
-    <div class="action-row">
-      <button id="clearBtn" class="danger ghost">Clear game</button>
     </div>
 
     <div>
@@ -550,10 +538,22 @@
       </div>
     </div>
 
-    <div>
-      <p class="section-title">Shot log</p>
-      <ul class="shotlist" id="shotList"></ul>
-      <p class="empty-note" id="emptyNote">No shots yet — tap the court to start recording this game.</p>
+    <div id="pctBlockWrap">
+      <p class="section-title">Live stats</p>
+      <table class="pct-table">
+        <thead><tr><th></th><th>This set</th><th id="matchHead">Match</th></tr></thead>
+        <tbody>
+          <tr><td>Hitting</td><td id="stHitSet">—</td><td id="stHitMatch">—</td></tr>
+          <tr class="sub"><td>Outside</td><td id="stHit_outside_Set">—</td><td id="stHit_outside_Match">—</td></tr>
+          <tr class="sub"><td>Middle</td><td id="stHit_middle_Set">—</td><td id="stHit_middle_Match">—</td></tr>
+          <tr class="sub"><td>Right side</td><td id="stHit_right_Set">—</td><td id="stHit_right_Match">—</td></tr>
+          <tr class="sub"><td>Back row</td><td id="stHit_back_Set">—</td><td id="stHit_back_Match">—</td></tr>
+          <tr><td>Digs / set</td><td id="stDigSet">—</td><td id="stDigMatch">—</td></tr>
+          <tr><td>Blocks / set</td><td id="stBlkSet">—</td><td id="stBlkMatch">—</td></tr>
+          <tr><td>Serve recv %</td><td id="stRecvSet">—</td><td id="stRecvMatch">—</td></tr>
+        </tbody>
+      </table>
+      <p class="empty-note" style="margin-top:6px;">Hitting = (kills − hit/net errors) ÷ total attacks, shown like .275, then split by where the attack started on our court: front row by thirds (outside, middle, right side), and back row for anything attacked from behind the 10-foot line. Digs and blocks (block kills) are per set. "Match" adds up every set played vs this opponent on the same date.</p>
     </div>
 
     <div id="insightsWrap">
@@ -566,6 +566,24 @@
       </div>
       <p class="empty-note" id="sendHint" style="display:none; margin-top:6px;">Opens your phone's messaging app with the number and summary pre-filled — one tap there to actually send it.</p>
     </div>
+
+
+    <div>
+      <div class="stat-total">
+        <span class="num" id="statTotal">0</span>
+        <span class="label">shots recorded</span>
+      </div>
+      <div class="legend" id="legend"></div>
+      <button id="legendToggle" class="ghost" style="width:100%; margin-top:8px; padding:6px;">Show all play types</button>
+      <p class="empty-note" style="margin-top:8px;">The teal half of the court is your side. Your plays render bright and bold with a teal ring on the starting dot; opponent plays render faded and thinner — same colors by type, just dimmed for theirs.</p>
+    </div>
+
+    <div>
+      <p class="section-title">Shot log</p>
+      <ul class="shotlist" id="shotList"></ul>
+      <p class="empty-note" id="emptyNote">No shots yet — tap the court to start recording this game.</p>
+    </div>
+    <p class="empty-note" id="versionNote" style="font-size:11px; opacity:.7; margin:0;"></p>
   </aside>
 </div>
 
@@ -664,13 +682,14 @@
       <div id="printStats"></div>
       <h3>Stats</h3>
       <div id="printPct"></div>
-      <p class="pr-key">Colors show the type of play. Home plays print bold with a teal ring on the starting dot; opponent plays print faded and thinner.</p>
+      <p class="pr-key">Hitting by area: kills-errors-attempts this set, then efficiency. Area = where the attack started on our court; back row = behind the 10-foot line.<br>Colors show the type of play. Home plays print bold with a teal ring on the starting dot; opponent plays print faded and thinner.</p>
     </div>
   </div>
 </div>
 
 <script>
 (function(){
+  const APP_VERSION = '2026.10.15-d';
   const STORAGE_KEY = 'rallyChart.games.v1';
   // group: 'home' = starts on our side, 'opp' = starts on the opponent's side (labeled "Opp-"),
   // 'legacy' = no longer offered, only listed when an older game used it.
@@ -701,6 +720,9 @@
     error:        { label:'Error / out',        hex:'#9B3948', group:'legacy' },
     none:         { label:'Untagged',           hex:'#8A96A6', group:'other' },
   };
+  const LEGEND_PREF_KEY = 'rallyChart.legendAll.v1';
+  let showAllTypes = false;
+  try{ showAllTypes = localStorage.getItem(LEGEND_PREF_KEY) === '1'; }catch(e){ /* ignore */ }
   const GROUP_TITLES = { home:'Our team', opp:'Opponent', legacy:'Older tags', other:'Other' };
   // Rows to list: every active type, plus older tags only when this game has them.
   function listedTypes(counts){
@@ -1146,6 +1168,28 @@
     shots.forEach(sh=>{ if(teamOf(sh) === 'home') c[sh.type] = (c[sh.type] || 0) + 1; });
     return c;
   }
+  // Where an attack started on our side, looking at the net from our court:
+  // left third = outside, middle third = middle, right third = right side.
+  const ATTACK_TYPES = { kill:'k', hitError:'e', error:'e', killAttempt:'a', tipAttempt:'a' };
+  // Anything attacked from behind our 10-foot (attack) line counts as back row.
+  const LANES = [ ['outside','Outside'], ['middle','Middle'], ['right','Right side'], ['back','Back row'] ];
+  function laneOf(pt){
+    if(pt.y > 500) return 'back';
+    return pt.x < 126.6 ? 'outside' : pt.x < 233.3 ? 'middle' : 'right';
+  }
+  function laneStats(shots){
+    const out = {};
+    LANES.forEach(([key])=> out[key] = { k:0, e:0, ta:0 });
+    shots.forEach(sh=>{
+      const kind = ATTACK_TYPES[sh.type];
+      if(!kind || teamOf(sh) !== 'home' || sh.from.y < 380) return;
+      const l = out[laneOf(sh.from)];
+      l.ta++;
+      if(kind === 'k') l.k++;
+      if(kind === 'e') l.e++;
+    });
+    return out;
+  }
   function rawStats(shots){
     const c = homeCounts(shots);
     const k = c.kill || 0, e = (c.hitError || 0) + (c.error || 0);
@@ -1155,6 +1199,7 @@
       digs: c.dig || 0,
       blocks: (c.blockKill || 0) + (c.block || 0),
       recv: c.receive || 0, recvErr: c.receiveError || 0,
+      lanes: laneStats(shots),
     };
   }
   function matchGames(game){
@@ -1168,11 +1213,16 @@
     const sets = games.length;
     const hit = r=> r.ta ? (r.k - r.e) / r.ta : null;
     const recv = r=> (r.recv + r.recvErr) ? r.recv / (r.recv + r.recvErr) : null;
+    const lanes = r=>{
+      const o = {};
+      LANES.forEach(([key])=>{ const l = r.lanes[key]; o[key] = { hit: hit(l), k: l.k, e: l.e, ta: l.ta }; });
+      return o;
+    };
     return {
       sets,
-      set:   { hit: hit(one), digs: one.digs, blocks: one.blocks, recv: recv(one), ta: one.ta },
+      set:   { hit: hit(one), digs: one.digs, blocks: one.blocks, recv: recv(one), ta: one.ta, lanes: lanes(one) },
       match: { hit: hit(all), digs: all.digs / sets, blocks: all.blocks / sets, recv: recv(all), ta: all.ta,
-               totalDigs: all.digs, totalBlocks: all.blocks },
+               totalDigs: all.digs, totalBlocks: all.blocks, lanes: lanes(all) },
     };
   }
   function fmtHit(v){
@@ -1303,7 +1353,15 @@
     game.shots.forEach(s=> counts[s.type] = (counts[s.type]||0)+1 );
     legendEl.innerHTML = '';
     let lastGroup = null;
-    listedTypes(counts).forEach(t=>{
+    const used = listedTypes(counts).filter(t=> showAllTypes || counts[t]);
+    const toggle = document.getElementById('legendToggle');
+    toggle.textContent = showAllTypes ? 'Show only plays used' : 'Show all play types';
+    if(!used.length){
+      const none = document.createElement('div');
+      none.className = 'empty-note'; none.textContent = 'Nothing tagged yet.';
+      legendEl.appendChild(none);
+    }
+    used.forEach(t=>{
       const g = TYPE_META[t].group;
       if(g !== lastGroup){
         lastGroup = g;
@@ -1321,6 +1379,10 @@
     const st = computeStats(game);
     const setText = (id, v)=>{ document.getElementById(id).textContent = v; };
     setText('stHitSet', fmtHit(st.set.hit));       setText('stHitMatch', fmtHit(st.match.hit));
+    LANES.forEach(([key])=>{
+      setText('stHit_' + key + '_Set', fmtHit(st.set.lanes[key].hit));
+      setText('stHit_' + key + '_Match', fmtHit(st.match.lanes[key].hit));
+    });
     setText('stDigSet', fmtPerSet(st.set.digs));   setText('stDigMatch', fmtPerSet(st.match.digs));
     setText('stBlkSet', fmtPerSet(st.set.blocks)); setText('stBlkMatch', fmtPerSet(st.match.blocks));
     setText('stRecvSet', fmtPct(st.set.recv));     setText('stRecvMatch', fmtPct(st.match.recv));
@@ -1546,10 +1608,17 @@
   });
 
   // ---- print ----
-  document.getElementById('printBtn').addEventListener('click', ()=>{
+  document.getElementById('legendToggle').addEventListener('click', ()=>{
+    showAllTypes = !showAllTypes;
+    try{ localStorage.setItem(LEGEND_PREF_KEY, showAllTypes ? '1' : '0'); }catch(e){ /* ignore */ }
+    render();
+  });
+  document.getElementById('versionNote').textContent = 'Rally Chart version ' + APP_VERSION;
+
+  function buildPrintReport(){
     const game = currentGame();
     document.getElementById('printTitle').textContent = 'vs ' + game.opponent + ' — Game ' + game.gameNumber;
-    document.getElementById('printMeta').textContent = game.date;
+    document.getElementById('printMeta').textContent = game.date + '  ·  Rally Chart ' + APP_VERSION;
 
     const printSvg = document.getElementById('printSvg');
     printSvg.innerHTML = svg.querySelector('#courtLines').outerHTML;
@@ -1586,12 +1655,23 @@
     const pr = (label, a, b)=> '<tr><td>' + label + '</td><td>' + a + '</td><td>' + b + '</td></tr>';
     pctEl.innerHTML = '<table class="pr-table"><thead><tr><th></th><th>This set</th><th>Match (' + st.sets + ')</th></tr></thead><tbody>' +
       pr('Hitting', fmtHit(st.set.hit), fmtHit(st.match.hit)) +
+      LANES.map(([key, label])=> '<tr class="sub"><td>' + label + ' <span class="kta">' + st.set.lanes[key].k + '-' + st.set.lanes[key].e + '-' + st.set.lanes[key].ta + '</span></td><td>' +
+        fmtHit(st.set.lanes[key].hit) + '</td><td>' + fmtHit(st.match.lanes[key].hit) + '</td></tr>').join('') +
       pr('Digs / set', fmtPerSet(st.set.digs), fmtPerSet(st.match.digs)) +
       pr('Blocks / set', fmtPerSet(st.set.blocks), fmtPerSet(st.match.blocks)) +
       pr('Serve receive %', fmtPct(st.set.recv), fmtPct(st.match.recv)) + '</tbody></table>';
 
-    window.print();
+  }
+  document.getElementById('printBtn').addEventListener('click', ()=>{
+    buildPrintReport();
+    try{ window.print(); }catch(e){ showToast("Use your browser's Print or Share → Print"); }
   });
+  window.addEventListener('beforeprint', buildPrintReport);
+  try{
+    const mq = window.matchMedia('print');
+    const onPrint = (e)=>{ if(e.matches) buildPrintReport(); };
+    if(mq.addEventListener) mq.addEventListener('change', onPrint); else if(mq.addListener) mq.addListener(onPrint);
+  }catch(e){ /* ignore */ }
 
   // ---- coaching insights ----
   const analyzeBtn = document.getElementById('analyzeBtn');
@@ -1619,6 +1699,7 @@
       opponent: game.opponent, gameNumber: game.gameNumber, totalShots: game.shots.length,
       byTeamType: counts, zoneCounts,
       homeStats: {
+        hittingByArea: LANES.map(([key, label])=> ({ area: label, thisSet: fmtHit(st.set.lanes[key].hit), kills: st.set.lanes[key].k, errors: st.set.lanes[key].e, attempts: st.set.lanes[key].ta, match: fmtHit(st.match.lanes[key].hit) })),
         thisSet: { hittingEfficiency: fmtHit(st.set.hit), digs: st.set.digs, blocks: st.set.blocks, serveReceivePct: fmtPct(st.set.recv) },
         match: { sets: st.sets, hittingEfficiency: fmtHit(st.match.hit), digsPerSet: fmtPerSet(st.match.digs), blocksPerSet: fmtPerSet(st.match.blocks), serveReceivePct: fmtPct(st.match.recv) }
       }
@@ -1635,6 +1716,7 @@
     });
     const h = summary.homeStats;
     lines.push('This set — Hitting ' + h.thisSet.hittingEfficiency + ' · Digs ' + h.thisSet.digs + ' · Blocks ' + h.thisSet.blocks + ' · Serve recv ' + h.thisSet.serveReceivePct);
+    lines.push('Hitting by area — ' + h.hittingByArea.map(a=> a.area + ' ' + a.thisSet + ' (' + a.kills + '-' + a.errors + '-' + a.attempts + ')').join(' · '));
     lines.push('Match (' + h.match.sets + ' sets) — Hitting ' + h.match.hittingEfficiency + ' · Digs/set ' + h.match.digsPerSet + ' · Blocks/set ' + h.match.blocksPerSet + ' · Serve recv ' + h.match.serveReceivePct);
     const topZone = Object.entries(summary.zoneCounts).sort((a,b)=> b[1]-a[1])[0];
     if(topZone){

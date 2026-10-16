@@ -30,11 +30,13 @@ after the first open. Send the link to anyone else who should have it.
 
 ## Updating the app later
 
-1. Upload the new `index.html` to the repository (it replaces the old one).
-2. Open `sw.js` on GitHub, click the pencil icon, change `rally-chart-v1` to `rally-chart-v2`
-   (then v3, and so on each time), and commit.
+1. In the repository, click **Add file**, then **Upload files**.
+2. Drag in the new `index.html` and `sw.js` (both, every time), then click **Commit changes**.
+3. Wait a minute or two for GitHub to republish.
 
-Phones pick up the new version after the app has been opened once or twice with a signal.
+Phones and tablets get the new version the next time the app is opened with a signal.
+To check which version a device is running, look at the bottom of the sidebar
+("Rally Chart version ...") or the top-right corner of a printout.
 
 ## Good to know
 

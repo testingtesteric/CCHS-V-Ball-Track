@@ -1,6 +1,6 @@
 // Rally Chart offline support.
 // Bump VERSION whenever you upload a new index.html so phones pick up the update.
-const VERSION = 'rally-chart-v8';
+const VERSION = 'rally-chart-v11';
 const CORE = [
   './',
   './index.html',
@@ -24,10 +24,24 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Serve from the phone first (works with no signal in the gym), refresh in the background.
+// The app page itself: get the newest copy when there's a signal (so updates show up right away),
+// and fall back to the saved copy in the gym with no signal.
+// Icons and other files: use the saved copy, refresh it in the background.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+  const isPage = req.mode === 'navigate' || req.url.endsWith('.html') || req.url.endsWith('/');
+  if (isPage) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' })
+        .then((res) => {
+          if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put('./index.html', copy)); }
+          return res;
+        })
+        .catch(() => caches.match('./index.html', { ignoreSearch: true }))
+    );
+    return;
+  }
   event.respondWith(
     caches.open(VERSION).then((cache) =>
       cache.match(req, { ignoreSearch: true }).then((cached) => {
@@ -36,7 +50,7 @@ self.addEventListener('fetch', (event) => {
             if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
             return res;
           })
-          .catch(() => cached || (req.mode === 'navigate' ? cache.match('./index.html') : undefined));
+          .catch(() => cached);
         return cached || fresh;
       })
     )
