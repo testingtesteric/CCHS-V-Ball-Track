@@ -311,7 +311,16 @@
   }
 
   /* Undo lives in the header and stays clickable even while the hit-type popup is open */
-  .court-row{ display:flex; align-items:center; justify-content:center; gap:10px; }
+  .court-row{ display:flex; align-items:stretch; justify-content:center; gap:10px; }
+  .court-row > .court-frame{ align-self:center; }
+  .rail{ display:flex; flex-direction:column; align-items:center; width:64px; flex-shrink:0; }
+  .rail-top{ flex:none; height:0; }
+  .rail-bottom{ flex:1; display:flex; flex-direction:column; align-items:center; }
+  .rail-bottom{ justify-content:flex-start; padding-top:18px; }
+  .view-filter{ display:flex; flex-direction:column; gap:6px; align-items:stretch; width:58px; }
+  .vf-label{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); text-align:center; }
+  .vf-btn{ padding:10px 0; font-size:13px; border-radius:10px; touch-action:manipulation; }
+  .vf-btn.active{ background:var(--teal); border-color:var(--teal); color:#08181A; }
   .rail-spacer{ width:64px; flex-shrink:0; }
   #undoBtn.undo-fab{
     position:relative; z-index:60;
@@ -464,7 +473,18 @@
     </div>
 
     <div class="court-row">
-    <button id="undoBtn" class="undo-fab" title="Undo last play (Ctrl+Z)" aria-label="Undo last play"><span class="undo-icon">↶</span><span class="undo-text">Undo</span></button>
+    <div class="rail">
+      <div class="rail-top"></div>
+      <button id="undoBtn" class="undo-fab" title="Undo last play (Ctrl+Z)" aria-label="Undo last play"><span class="undo-icon">↶</span><span class="undo-text">Undo</span></button>
+      <div class="rail-bottom">
+        <div class="view-filter" role="group" aria-label="Show shots from">
+          <span class="vf-label">Show</span>
+          <button class="vf-btn active" data-view="all">All</button>
+          <button class="vf-btn" data-view="home">Ours</button>
+          <button class="vf-btn" data-view="opponent">Opp</button>
+        </div>
+      </div>
+    </div>
     <div class="court-frame">
       <div class="opp-fields" id="opponentLabel">
         <span>vs</span>
@@ -671,6 +691,7 @@
     <h2 id="printTitle"></h2>
     <span class="meta" id="printMeta"></span>
   </div>
+  <p id="printView" style="margin:-4px 0 8px; font-size:12px; font-weight:700; color:#2C6E74;"></p>
   <div class="pr-body">
     <div class="pr-court">
       <div class="end" style="margin-bottom:3px;">Opponent's court</div>
@@ -689,7 +710,7 @@
 
 <script>
 (function(){
-  const APP_VERSION = '2026.10.15-d';
+  const APP_VERSION = '2026.10.17-a';
   const STORAGE_KEY = 'rallyChart.games.v1';
   // group: 'home' = starts on our side, 'opp' = starts on the opponent's side (labeled "Opp-"),
   // 'legacy' = no longer offered, only listed when an older game used it.
@@ -874,6 +895,7 @@
     evt.preventDefault();
     const p = svgPoint(evt);
     if(!pending){
+      if(viewFilter !== 'all'){ viewFilter = 'all'; render(); } // recording a new play: show everything again
       pending = { from: p };
       drawPendingFrom(p);
       instructionEl.classList.add('step2');
@@ -1235,6 +1257,12 @@
   // ---- rendering ----
   function shotColor(type){ return (TYPE_META[type] || TYPE_META.none).hex; }
 
+  // Which shots to draw: 'all', 'home' (started on our side) or 'opponent' (started on theirs).
+  let viewFilter = 'all';
+  function sideOf(shot){ return shot.from.y >= 380 ? 'home' : 'opponent'; }
+  function visibleShots(shots){ return viewFilter === 'all' ? shots : shots.filter(sh=> sideOf(sh) === viewFilter); }
+  const VIEW_LABELS = { all:'All shots', home:'Shots from our side', opponent:"Shots from the opponent's side" };
+
   function renderShotsInto(layerEl, shots, focusId){
     layerEl.innerHTML = '';
     shots.forEach((s, i)=>{
@@ -1344,7 +1372,8 @@
     if(document.activeElement !== oppGameInput) oppGameInput.value = game.gameNumber;
 
     // court shots
-    renderShotsInto(shotsLayer, game.shots, review ? review.ids[review.i] : null);
+    renderShotsInto(shotsLayer, review ? game.shots : visibleShots(game.shots), review ? review.ids[review.i] : null);
+    document.querySelectorAll('.vf-btn').forEach(b=> b.classList.toggle('active', b.dataset.view === viewFilter));
 
     // stats
     statTotal.textContent = game.shots.length;
@@ -1608,6 +1637,27 @@
   });
 
   // ---- print ----
+  // Keep Undo level with the net, with the Show buttons underneath it.
+  function alignRail(){
+    const ctm = svg.getScreenCTM(); if(!ctm) return;
+    const pt = svg.createSVGPoint(); pt.x = 0; pt.y = 380;
+    const netY = pt.matrixTransform(ctm).y;
+    const rail = document.querySelector('.rail').getBoundingClientRect();
+    const undoH = document.getElementById('undoBtn').offsetHeight;
+    document.querySelector('.rail-top').style.height = Math.max(0, netY - rail.top - undoH / 2) + 'px';
+  }
+  window.addEventListener('resize', alignRail);
+  window.addEventListener('load', alignRail);
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(alignRail);
+  setTimeout(alignRail, 0);
+
+  document.querySelectorAll('.vf-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      viewFilter = btn.dataset.view;
+      render();
+      if(viewFilter !== 'all') showToast(VIEW_LABELS[viewFilter] + ' · tap the court to go back to all');
+    });
+  });
   document.getElementById('legendToggle').addEventListener('click', ()=>{
     showAllTypes = !showAllTypes;
     try{ localStorage.setItem(LEGEND_PREF_KEY, showAllTypes ? '1' : '0'); }catch(e){ /* ignore */ }
@@ -1619,6 +1669,8 @@
     const game = currentGame();
     document.getElementById('printTitle').textContent = 'vs ' + game.opponent + ' — Game ' + game.gameNumber;
     document.getElementById('printMeta').textContent = game.date + '  ·  Rally Chart ' + APP_VERSION;
+    document.getElementById('printView').textContent = viewFilter === 'all' ? '' :
+      'Court shows: ' + VIEW_LABELS[viewFilter] + ' (' + visibleShots(game.shots).length + ' of ' + game.shots.length + '). Counts and stats below cover the whole game.';
 
     const printSvg = document.getElementById('printSvg');
     printSvg.innerHTML = svg.querySelector('#courtLines').outerHTML;
@@ -1634,7 +1686,7 @@
     renderZonesInto(printZonesLayer);
     const layer = document.createElementNS('http://www.w3.org/2000/svg','g');
     printSvg.appendChild(layer);
-    renderShotsInto(layer, game.shots);
+    renderShotsInto(layer, visibleShots(game.shots));
 
     const counts = {};
     game.shots.forEach(sh=> counts[sh.type] = (counts[sh.type]||0) + 1);
